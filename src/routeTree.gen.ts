@@ -16,8 +16,14 @@ import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as BookAppointmentRouteImport } from './routes/book-appointment'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SuperAdminIndexRouteImport } from './routes/super-admin.index'
+import { Route as SuperAdminUsersRouteImport } from './routes/super-admin.users'
+import { Route as SuperAdminSettingsRouteImport } from './routes/super-admin.settings'
 import { Route as SuperAdminRequestsRouteImport } from './routes/super-admin.requests'
+import { Route as SuperAdminReportsRouteImport } from './routes/super-admin.reports'
+import { Route as SuperAdminOrganizationsRouteImport } from './routes/super-admin.organizations'
+import { Route as SuperAdminContactRouteImport } from './routes/super-admin.contact'
 import { Route as SuperAdminCategoriesRouteImport } from './routes/super-admin.categories'
+import { Route as SuperAdminAuditRouteImport } from './routes/super-admin.audit'
 
 const SuperAdminRoute = SuperAdminRouteImport.update({
   id: '/super-admin',
@@ -54,14 +60,44 @@ const SuperAdminIndexRoute = SuperAdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => SuperAdminRoute,
 } as any)
+const SuperAdminUsersRoute = SuperAdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
+const SuperAdminSettingsRoute = SuperAdminSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
 const SuperAdminRequestsRoute = SuperAdminRequestsRouteImport.update({
   id: '/requests',
   path: '/requests',
   getParentRoute: () => SuperAdminRoute,
 } as any)
+const SuperAdminReportsRoute = SuperAdminReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
+const SuperAdminOrganizationsRoute = SuperAdminOrganizationsRouteImport.update({
+  id: '/organizations',
+  path: '/organizations',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
+const SuperAdminContactRoute = SuperAdminContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
 const SuperAdminCategoriesRoute = SuperAdminCategoriesRouteImport.update({
   id: '/categories',
   path: '/categories',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
+const SuperAdminAuditRoute = SuperAdminAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
   getParentRoute: () => SuperAdminRoute,
 } as any)
 
@@ -72,8 +108,14 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/register-organization': typeof RegisterOrganizationRoute
   '/super-admin': typeof SuperAdminRouteWithChildren
+  '/super-admin/audit': typeof SuperAdminAuditRoute
   '/super-admin/categories': typeof SuperAdminCategoriesRoute
+  '/super-admin/contact': typeof SuperAdminContactRoute
+  '/super-admin/organizations': typeof SuperAdminOrganizationsRoute
+  '/super-admin/reports': typeof SuperAdminReportsRoute
   '/super-admin/requests': typeof SuperAdminRequestsRoute
+  '/super-admin/settings': typeof SuperAdminSettingsRoute
+  '/super-admin/users': typeof SuperAdminUsersRoute
   '/super-admin/': typeof SuperAdminIndexRoute
 }
 export interface FileRoutesByTo {
@@ -82,8 +124,14 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/register-organization': typeof RegisterOrganizationRoute
+  '/super-admin/audit': typeof SuperAdminAuditRoute
   '/super-admin/categories': typeof SuperAdminCategoriesRoute
+  '/super-admin/contact': typeof SuperAdminContactRoute
+  '/super-admin/organizations': typeof SuperAdminOrganizationsRoute
+  '/super-admin/reports': typeof SuperAdminReportsRoute
   '/super-admin/requests': typeof SuperAdminRequestsRoute
+  '/super-admin/settings': typeof SuperAdminSettingsRoute
+  '/super-admin/users': typeof SuperAdminUsersRoute
   '/super-admin': typeof SuperAdminIndexRoute
 }
 export interface FileRoutesById {
@@ -94,8 +142,14 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/register-organization': typeof RegisterOrganizationRoute
   '/super-admin': typeof SuperAdminRouteWithChildren
+  '/super-admin/audit': typeof SuperAdminAuditRoute
   '/super-admin/categories': typeof SuperAdminCategoriesRoute
+  '/super-admin/contact': typeof SuperAdminContactRoute
+  '/super-admin/organizations': typeof SuperAdminOrganizationsRoute
+  '/super-admin/reports': typeof SuperAdminReportsRoute
   '/super-admin/requests': typeof SuperAdminRequestsRoute
+  '/super-admin/settings': typeof SuperAdminSettingsRoute
+  '/super-admin/users': typeof SuperAdminUsersRoute
   '/super-admin/': typeof SuperAdminIndexRoute
 }
 export interface FileRouteTypes {
@@ -107,8 +161,14 @@ export interface FileRouteTypes {
     | '/login'
     | '/register-organization'
     | '/super-admin'
+    | '/super-admin/audit'
     | '/super-admin/categories'
+    | '/super-admin/contact'
+    | '/super-admin/organizations'
+    | '/super-admin/reports'
     | '/super-admin/requests'
+    | '/super-admin/settings'
+    | '/super-admin/users'
     | '/super-admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -117,8 +177,14 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/register-organization'
+    | '/super-admin/audit'
     | '/super-admin/categories'
+    | '/super-admin/contact'
+    | '/super-admin/organizations'
+    | '/super-admin/reports'
     | '/super-admin/requests'
+    | '/super-admin/settings'
+    | '/super-admin/users'
     | '/super-admin'
   id:
     | '__root__'
@@ -128,8 +194,14 @@ export interface FileRouteTypes {
     | '/login'
     | '/register-organization'
     | '/super-admin'
+    | '/super-admin/audit'
     | '/super-admin/categories'
+    | '/super-admin/contact'
+    | '/super-admin/organizations'
+    | '/super-admin/reports'
     | '/super-admin/requests'
+    | '/super-admin/settings'
+    | '/super-admin/users'
     | '/super-admin/'
   fileRoutesById: FileRoutesById
 }
@@ -193,11 +265,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SuperAdminIndexRouteImport
       parentRoute: typeof SuperAdminRoute
     }
+    '/super-admin/users': {
+      id: '/super-admin/users'
+      path: '/users'
+      fullPath: '/super-admin/users'
+      preLoaderRoute: typeof SuperAdminUsersRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/settings': {
+      id: '/super-admin/settings'
+      path: '/settings'
+      fullPath: '/super-admin/settings'
+      preLoaderRoute: typeof SuperAdminSettingsRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
     '/super-admin/requests': {
       id: '/super-admin/requests'
       path: '/requests'
       fullPath: '/super-admin/requests'
       preLoaderRoute: typeof SuperAdminRequestsRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/reports': {
+      id: '/super-admin/reports'
+      path: '/reports'
+      fullPath: '/super-admin/reports'
+      preLoaderRoute: typeof SuperAdminReportsRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/organizations': {
+      id: '/super-admin/organizations'
+      path: '/organizations'
+      fullPath: '/super-admin/organizations'
+      preLoaderRoute: typeof SuperAdminOrganizationsRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/contact': {
+      id: '/super-admin/contact'
+      path: '/contact'
+      fullPath: '/super-admin/contact'
+      preLoaderRoute: typeof SuperAdminContactRouteImport
       parentRoute: typeof SuperAdminRoute
     }
     '/super-admin/categories': {
@@ -207,18 +314,37 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SuperAdminCategoriesRouteImport
       parentRoute: typeof SuperAdminRoute
     }
+    '/super-admin/audit': {
+      id: '/super-admin/audit'
+      path: '/audit'
+      fullPath: '/super-admin/audit'
+      preLoaderRoute: typeof SuperAdminAuditRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
   }
 }
 
 interface SuperAdminRouteChildren {
+  SuperAdminAuditRoute: typeof SuperAdminAuditRoute
   SuperAdminCategoriesRoute: typeof SuperAdminCategoriesRoute
+  SuperAdminContactRoute: typeof SuperAdminContactRoute
+  SuperAdminOrganizationsRoute: typeof SuperAdminOrganizationsRoute
+  SuperAdminReportsRoute: typeof SuperAdminReportsRoute
   SuperAdminRequestsRoute: typeof SuperAdminRequestsRoute
+  SuperAdminSettingsRoute: typeof SuperAdminSettingsRoute
+  SuperAdminUsersRoute: typeof SuperAdminUsersRoute
   SuperAdminIndexRoute: typeof SuperAdminIndexRoute
 }
 
 const SuperAdminRouteChildren: SuperAdminRouteChildren = {
+  SuperAdminAuditRoute: SuperAdminAuditRoute,
   SuperAdminCategoriesRoute: SuperAdminCategoriesRoute,
+  SuperAdminContactRoute: SuperAdminContactRoute,
+  SuperAdminOrganizationsRoute: SuperAdminOrganizationsRoute,
+  SuperAdminReportsRoute: SuperAdminReportsRoute,
   SuperAdminRequestsRoute: SuperAdminRequestsRoute,
+  SuperAdminSettingsRoute: SuperAdminSettingsRoute,
+  SuperAdminUsersRoute: SuperAdminUsersRoute,
   SuperAdminIndexRoute: SuperAdminIndexRoute,
 }
 

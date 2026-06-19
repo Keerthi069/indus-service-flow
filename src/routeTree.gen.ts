@@ -9,12 +9,21 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SuperAdminRouteImport } from './routes/super-admin'
 import { Route as RegisterOrganizationRouteImport } from './routes/register-organization'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as BookAppointmentRouteImport } from './routes/book-appointment'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SuperAdminIndexRouteImport } from './routes/super-admin.index'
+import { Route as SuperAdminRequestsRouteImport } from './routes/super-admin.requests'
+import { Route as SuperAdminCategoriesRouteImport } from './routes/super-admin.categories'
 
+const SuperAdminRoute = SuperAdminRouteImport.update({
+  id: '/super-admin',
+  path: '/super-admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RegisterOrganizationRoute = RegisterOrganizationRouteImport.update({
   id: '/register-organization',
   path: '/register-organization',
@@ -40,6 +49,21 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SuperAdminIndexRoute = SuperAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
+const SuperAdminRequestsRoute = SuperAdminRequestsRouteImport.update({
+  id: '/requests',
+  path: '/requests',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
+const SuperAdminCategoriesRoute = SuperAdminCategoriesRouteImport.update({
+  id: '/categories',
+  path: '/categories',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -47,6 +71,10 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/register-organization': typeof RegisterOrganizationRoute
+  '/super-admin': typeof SuperAdminRouteWithChildren
+  '/super-admin/categories': typeof SuperAdminCategoriesRoute
+  '/super-admin/requests': typeof SuperAdminRequestsRoute
+  '/super-admin/': typeof SuperAdminIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -54,6 +82,9 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/register-organization': typeof RegisterOrganizationRoute
+  '/super-admin/categories': typeof SuperAdminCategoriesRoute
+  '/super-admin/requests': typeof SuperAdminRequestsRoute
+  '/super-admin': typeof SuperAdminIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -62,6 +93,10 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/register-organization': typeof RegisterOrganizationRoute
+  '/super-admin': typeof SuperAdminRouteWithChildren
+  '/super-admin/categories': typeof SuperAdminCategoriesRoute
+  '/super-admin/requests': typeof SuperAdminRequestsRoute
+  '/super-admin/': typeof SuperAdminIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -71,6 +106,10 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/register-organization'
+    | '/super-admin'
+    | '/super-admin/categories'
+    | '/super-admin/requests'
+    | '/super-admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -78,6 +117,9 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/register-organization'
+    | '/super-admin/categories'
+    | '/super-admin/requests'
+    | '/super-admin'
   id:
     | '__root__'
     | '/'
@@ -85,6 +127,10 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/register-organization'
+    | '/super-admin'
+    | '/super-admin/categories'
+    | '/super-admin/requests'
+    | '/super-admin/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -93,10 +139,18 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   RegisterOrganizationRoute: typeof RegisterOrganizationRoute
+  SuperAdminRoute: typeof SuperAdminRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/super-admin': {
+      id: '/super-admin'
+      path: '/super-admin'
+      fullPath: '/super-admin'
+      preLoaderRoute: typeof SuperAdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/register-organization': {
       id: '/register-organization'
       path: '/register-organization'
@@ -132,8 +186,45 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/super-admin/': {
+      id: '/super-admin/'
+      path: '/'
+      fullPath: '/super-admin/'
+      preLoaderRoute: typeof SuperAdminIndexRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/requests': {
+      id: '/super-admin/requests'
+      path: '/requests'
+      fullPath: '/super-admin/requests'
+      preLoaderRoute: typeof SuperAdminRequestsRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/categories': {
+      id: '/super-admin/categories'
+      path: '/categories'
+      fullPath: '/super-admin/categories'
+      preLoaderRoute: typeof SuperAdminCategoriesRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
   }
 }
+
+interface SuperAdminRouteChildren {
+  SuperAdminCategoriesRoute: typeof SuperAdminCategoriesRoute
+  SuperAdminRequestsRoute: typeof SuperAdminRequestsRoute
+  SuperAdminIndexRoute: typeof SuperAdminIndexRoute
+}
+
+const SuperAdminRouteChildren: SuperAdminRouteChildren = {
+  SuperAdminCategoriesRoute: SuperAdminCategoriesRoute,
+  SuperAdminRequestsRoute: SuperAdminRequestsRoute,
+  SuperAdminIndexRoute: SuperAdminIndexRoute,
+}
+
+const SuperAdminRouteWithChildren = SuperAdminRoute._addFileChildren(
+  SuperAdminRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -141,6 +232,7 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   RegisterOrganizationRoute: RegisterOrganizationRoute,
+  SuperAdminRoute: SuperAdminRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

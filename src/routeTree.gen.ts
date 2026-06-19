@@ -15,11 +15,13 @@ import { Route as OrgAdminRouteImport } from './routes/org-admin'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as EmployeeRouteImport } from './routes/employee'
+import { Route as CustomerRouteImport } from './routes/customer'
 import { Route as BookAppointmentRouteImport } from './routes/book-appointment'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SuperAdminIndexRouteImport } from './routes/super-admin.index'
 import { Route as OrgAdminIndexRouteImport } from './routes/org-admin.index'
 import { Route as EmployeeIndexRouteImport } from './routes/employee.index'
+import { Route as CustomerIndexRouteImport } from './routes/customer.index'
 import { Route as SuperAdminUsersRouteImport } from './routes/super-admin.users'
 import { Route as SuperAdminSettingsRouteImport } from './routes/super-admin.settings'
 import { Route as SuperAdminRequestsRouteImport } from './routes/super-admin.requests'
@@ -42,6 +44,11 @@ import { Route as OrgAdminAiRouteImport } from './routes/org-admin.ai'
 import { Route as EmployeeScheduleRouteImport } from './routes/employee.schedule'
 import { Route as EmployeeQueueRouteImport } from './routes/employee.queue'
 import { Route as EmployeePerformanceRouteImport } from './routes/employee.performance'
+import { Route as CustomerQueueStatusRouteImport } from './routes/customer.queue-status'
+import { Route as CustomerProfileRouteImport } from './routes/customer.profile'
+import { Route as CustomerHistoryRouteImport } from './routes/customer.history'
+import { Route as CustomerFeedbackRouteImport } from './routes/customer.feedback'
+import { Route as CustomerAppointmentsRouteImport } from './routes/customer.appointments'
 
 const SuperAdminRoute = SuperAdminRouteImport.update({
   id: '/super-admin',
@@ -73,6 +80,11 @@ const EmployeeRoute = EmployeeRouteImport.update({
   path: '/employee',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CustomerRoute = CustomerRouteImport.update({
+  id: '/customer',
+  path: '/customer',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BookAppointmentRoute = BookAppointmentRouteImport.update({
   id: '/book-appointment',
   path: '/book-appointment',
@@ -97,6 +109,11 @@ const EmployeeIndexRoute = EmployeeIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => EmployeeRoute,
+} as any)
+const CustomerIndexRoute = CustomerIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CustomerRoute,
 } as any)
 const SuperAdminUsersRoute = SuperAdminUsersRouteImport.update({
   id: '/users',
@@ -209,16 +226,47 @@ const EmployeePerformanceRoute = EmployeePerformanceRouteImport.update({
   path: '/performance',
   getParentRoute: () => EmployeeRoute,
 } as any)
+const CustomerQueueStatusRoute = CustomerQueueStatusRouteImport.update({
+  id: '/queue-status',
+  path: '/queue-status',
+  getParentRoute: () => CustomerRoute,
+} as any)
+const CustomerProfileRoute = CustomerProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => CustomerRoute,
+} as any)
+const CustomerHistoryRoute = CustomerHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => CustomerRoute,
+} as any)
+const CustomerFeedbackRoute = CustomerFeedbackRouteImport.update({
+  id: '/feedback',
+  path: '/feedback',
+  getParentRoute: () => CustomerRoute,
+} as any)
+const CustomerAppointmentsRoute = CustomerAppointmentsRouteImport.update({
+  id: '/appointments',
+  path: '/appointments',
+  getParentRoute: () => CustomerRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/book-appointment': typeof BookAppointmentRoute
+  '/customer': typeof CustomerRouteWithChildren
   '/employee': typeof EmployeeRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/org-admin': typeof OrgAdminRouteWithChildren
   '/register-organization': typeof RegisterOrganizationRoute
   '/super-admin': typeof SuperAdminRouteWithChildren
+  '/customer/appointments': typeof CustomerAppointmentsRoute
+  '/customer/feedback': typeof CustomerFeedbackRoute
+  '/customer/history': typeof CustomerHistoryRoute
+  '/customer/profile': typeof CustomerProfileRoute
+  '/customer/queue-status': typeof CustomerQueueStatusRoute
   '/employee/performance': typeof EmployeePerformanceRoute
   '/employee/queue': typeof EmployeeQueueRoute
   '/employee/schedule': typeof EmployeeScheduleRoute
@@ -241,6 +289,7 @@ export interface FileRoutesByFullPath {
   '/super-admin/requests': typeof SuperAdminRequestsRoute
   '/super-admin/settings': typeof SuperAdminSettingsRoute
   '/super-admin/users': typeof SuperAdminUsersRoute
+  '/customer/': typeof CustomerIndexRoute
   '/employee/': typeof EmployeeIndexRoute
   '/org-admin/': typeof OrgAdminIndexRoute
   '/super-admin/': typeof SuperAdminIndexRoute
@@ -251,6 +300,11 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/register-organization': typeof RegisterOrganizationRoute
+  '/customer/appointments': typeof CustomerAppointmentsRoute
+  '/customer/feedback': typeof CustomerFeedbackRoute
+  '/customer/history': typeof CustomerHistoryRoute
+  '/customer/profile': typeof CustomerProfileRoute
+  '/customer/queue-status': typeof CustomerQueueStatusRoute
   '/employee/performance': typeof EmployeePerformanceRoute
   '/employee/queue': typeof EmployeeQueueRoute
   '/employee/schedule': typeof EmployeeScheduleRoute
@@ -273,6 +327,7 @@ export interface FileRoutesByTo {
   '/super-admin/requests': typeof SuperAdminRequestsRoute
   '/super-admin/settings': typeof SuperAdminSettingsRoute
   '/super-admin/users': typeof SuperAdminUsersRoute
+  '/customer': typeof CustomerIndexRoute
   '/employee': typeof EmployeeIndexRoute
   '/org-admin': typeof OrgAdminIndexRoute
   '/super-admin': typeof SuperAdminIndexRoute
@@ -281,12 +336,18 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/book-appointment': typeof BookAppointmentRoute
+  '/customer': typeof CustomerRouteWithChildren
   '/employee': typeof EmployeeRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/org-admin': typeof OrgAdminRouteWithChildren
   '/register-organization': typeof RegisterOrganizationRoute
   '/super-admin': typeof SuperAdminRouteWithChildren
+  '/customer/appointments': typeof CustomerAppointmentsRoute
+  '/customer/feedback': typeof CustomerFeedbackRoute
+  '/customer/history': typeof CustomerHistoryRoute
+  '/customer/profile': typeof CustomerProfileRoute
+  '/customer/queue-status': typeof CustomerQueueStatusRoute
   '/employee/performance': typeof EmployeePerformanceRoute
   '/employee/queue': typeof EmployeeQueueRoute
   '/employee/schedule': typeof EmployeeScheduleRoute
@@ -309,6 +370,7 @@ export interface FileRoutesById {
   '/super-admin/requests': typeof SuperAdminRequestsRoute
   '/super-admin/settings': typeof SuperAdminSettingsRoute
   '/super-admin/users': typeof SuperAdminUsersRoute
+  '/customer/': typeof CustomerIndexRoute
   '/employee/': typeof EmployeeIndexRoute
   '/org-admin/': typeof OrgAdminIndexRoute
   '/super-admin/': typeof SuperAdminIndexRoute
@@ -318,12 +380,18 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/book-appointment'
+    | '/customer'
     | '/employee'
     | '/forgot-password'
     | '/login'
     | '/org-admin'
     | '/register-organization'
     | '/super-admin'
+    | '/customer/appointments'
+    | '/customer/feedback'
+    | '/customer/history'
+    | '/customer/profile'
+    | '/customer/queue-status'
     | '/employee/performance'
     | '/employee/queue'
     | '/employee/schedule'
@@ -346,6 +414,7 @@ export interface FileRouteTypes {
     | '/super-admin/requests'
     | '/super-admin/settings'
     | '/super-admin/users'
+    | '/customer/'
     | '/employee/'
     | '/org-admin/'
     | '/super-admin/'
@@ -356,6 +425,11 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/register-organization'
+    | '/customer/appointments'
+    | '/customer/feedback'
+    | '/customer/history'
+    | '/customer/profile'
+    | '/customer/queue-status'
     | '/employee/performance'
     | '/employee/queue'
     | '/employee/schedule'
@@ -378,6 +452,7 @@ export interface FileRouteTypes {
     | '/super-admin/requests'
     | '/super-admin/settings'
     | '/super-admin/users'
+    | '/customer'
     | '/employee'
     | '/org-admin'
     | '/super-admin'
@@ -385,12 +460,18 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/book-appointment'
+    | '/customer'
     | '/employee'
     | '/forgot-password'
     | '/login'
     | '/org-admin'
     | '/register-organization'
     | '/super-admin'
+    | '/customer/appointments'
+    | '/customer/feedback'
+    | '/customer/history'
+    | '/customer/profile'
+    | '/customer/queue-status'
     | '/employee/performance'
     | '/employee/queue'
     | '/employee/schedule'
@@ -413,6 +494,7 @@ export interface FileRouteTypes {
     | '/super-admin/requests'
     | '/super-admin/settings'
     | '/super-admin/users'
+    | '/customer/'
     | '/employee/'
     | '/org-admin/'
     | '/super-admin/'
@@ -421,6 +503,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BookAppointmentRoute: typeof BookAppointmentRoute
+  CustomerRoute: typeof CustomerRouteWithChildren
   EmployeeRoute: typeof EmployeeRouteWithChildren
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
@@ -473,6 +556,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EmployeeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/customer': {
+      id: '/customer'
+      path: '/customer'
+      fullPath: '/customer'
+      preLoaderRoute: typeof CustomerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/book-appointment': {
       id: '/book-appointment'
       path: '/book-appointment'
@@ -507,6 +597,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/employee/'
       preLoaderRoute: typeof EmployeeIndexRouteImport
       parentRoute: typeof EmployeeRoute
+    }
+    '/customer/': {
+      id: '/customer/'
+      path: '/'
+      fullPath: '/customer/'
+      preLoaderRoute: typeof CustomerIndexRouteImport
+      parentRoute: typeof CustomerRoute
     }
     '/super-admin/users': {
       id: '/super-admin/users'
@@ -662,8 +759,65 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EmployeePerformanceRouteImport
       parentRoute: typeof EmployeeRoute
     }
+    '/customer/queue-status': {
+      id: '/customer/queue-status'
+      path: '/queue-status'
+      fullPath: '/customer/queue-status'
+      preLoaderRoute: typeof CustomerQueueStatusRouteImport
+      parentRoute: typeof CustomerRoute
+    }
+    '/customer/profile': {
+      id: '/customer/profile'
+      path: '/profile'
+      fullPath: '/customer/profile'
+      preLoaderRoute: typeof CustomerProfileRouteImport
+      parentRoute: typeof CustomerRoute
+    }
+    '/customer/history': {
+      id: '/customer/history'
+      path: '/history'
+      fullPath: '/customer/history'
+      preLoaderRoute: typeof CustomerHistoryRouteImport
+      parentRoute: typeof CustomerRoute
+    }
+    '/customer/feedback': {
+      id: '/customer/feedback'
+      path: '/feedback'
+      fullPath: '/customer/feedback'
+      preLoaderRoute: typeof CustomerFeedbackRouteImport
+      parentRoute: typeof CustomerRoute
+    }
+    '/customer/appointments': {
+      id: '/customer/appointments'
+      path: '/appointments'
+      fullPath: '/customer/appointments'
+      preLoaderRoute: typeof CustomerAppointmentsRouteImport
+      parentRoute: typeof CustomerRoute
+    }
   }
 }
+
+interface CustomerRouteChildren {
+  CustomerAppointmentsRoute: typeof CustomerAppointmentsRoute
+  CustomerFeedbackRoute: typeof CustomerFeedbackRoute
+  CustomerHistoryRoute: typeof CustomerHistoryRoute
+  CustomerProfileRoute: typeof CustomerProfileRoute
+  CustomerQueueStatusRoute: typeof CustomerQueueStatusRoute
+  CustomerIndexRoute: typeof CustomerIndexRoute
+}
+
+const CustomerRouteChildren: CustomerRouteChildren = {
+  CustomerAppointmentsRoute: CustomerAppointmentsRoute,
+  CustomerFeedbackRoute: CustomerFeedbackRoute,
+  CustomerHistoryRoute: CustomerHistoryRoute,
+  CustomerProfileRoute: CustomerProfileRoute,
+  CustomerQueueStatusRoute: CustomerQueueStatusRoute,
+  CustomerIndexRoute: CustomerIndexRoute,
+}
+
+const CustomerRouteWithChildren = CustomerRoute._addFileChildren(
+  CustomerRouteChildren,
+)
 
 interface EmployeeRouteChildren {
   EmployeePerformanceRoute: typeof EmployeePerformanceRoute
@@ -748,6 +902,7 @@ const SuperAdminRouteWithChildren = SuperAdminRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BookAppointmentRoute: BookAppointmentRoute,
+  CustomerRoute: CustomerRouteWithChildren,
   EmployeeRoute: EmployeeRouteWithChildren,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
@@ -758,3 +913,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

@@ -14,10 +14,12 @@ import { Route as RegisterOrganizationRouteImport } from './routes/register-orga
 import { Route as OrgAdminRouteImport } from './routes/org-admin'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as EmployeeRouteImport } from './routes/employee'
 import { Route as BookAppointmentRouteImport } from './routes/book-appointment'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SuperAdminIndexRouteImport } from './routes/super-admin.index'
 import { Route as OrgAdminIndexRouteImport } from './routes/org-admin.index'
+import { Route as EmployeeIndexRouteImport } from './routes/employee.index'
 import { Route as SuperAdminUsersRouteImport } from './routes/super-admin.users'
 import { Route as SuperAdminSettingsRouteImport } from './routes/super-admin.settings'
 import { Route as SuperAdminRequestsRouteImport } from './routes/super-admin.requests'
@@ -37,6 +39,9 @@ import { Route as OrgAdminCustomersRouteImport } from './routes/org-admin.custom
 import { Route as OrgAdminAppointmentsRouteImport } from './routes/org-admin.appointments'
 import { Route as OrgAdminAnalyticsRouteImport } from './routes/org-admin.analytics'
 import { Route as OrgAdminAiRouteImport } from './routes/org-admin.ai'
+import { Route as EmployeeScheduleRouteImport } from './routes/employee.schedule'
+import { Route as EmployeeQueueRouteImport } from './routes/employee.queue'
+import { Route as EmployeePerformanceRouteImport } from './routes/employee.performance'
 
 const SuperAdminRoute = SuperAdminRouteImport.update({
   id: '/super-admin',
@@ -63,6 +68,11 @@ const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EmployeeRoute = EmployeeRouteImport.update({
+  id: '/employee',
+  path: '/employee',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BookAppointmentRoute = BookAppointmentRouteImport.update({
   id: '/book-appointment',
   path: '/book-appointment',
@@ -82,6 +92,11 @@ const OrgAdminIndexRoute = OrgAdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => OrgAdminRoute,
+} as any)
+const EmployeeIndexRoute = EmployeeIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => EmployeeRoute,
 } as any)
 const SuperAdminUsersRoute = SuperAdminUsersRouteImport.update({
   id: '/users',
@@ -179,15 +194,34 @@ const OrgAdminAiRoute = OrgAdminAiRouteImport.update({
   path: '/ai',
   getParentRoute: () => OrgAdminRoute,
 } as any)
+const EmployeeScheduleRoute = EmployeeScheduleRouteImport.update({
+  id: '/schedule',
+  path: '/schedule',
+  getParentRoute: () => EmployeeRoute,
+} as any)
+const EmployeeQueueRoute = EmployeeQueueRouteImport.update({
+  id: '/queue',
+  path: '/queue',
+  getParentRoute: () => EmployeeRoute,
+} as any)
+const EmployeePerformanceRoute = EmployeePerformanceRouteImport.update({
+  id: '/performance',
+  path: '/performance',
+  getParentRoute: () => EmployeeRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/book-appointment': typeof BookAppointmentRoute
+  '/employee': typeof EmployeeRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/org-admin': typeof OrgAdminRouteWithChildren
   '/register-organization': typeof RegisterOrganizationRoute
   '/super-admin': typeof SuperAdminRouteWithChildren
+  '/employee/performance': typeof EmployeePerformanceRoute
+  '/employee/queue': typeof EmployeeQueueRoute
+  '/employee/schedule': typeof EmployeeScheduleRoute
   '/org-admin/ai': typeof OrgAdminAiRoute
   '/org-admin/analytics': typeof OrgAdminAnalyticsRoute
   '/org-admin/appointments': typeof OrgAdminAppointmentsRoute
@@ -207,6 +241,7 @@ export interface FileRoutesByFullPath {
   '/super-admin/requests': typeof SuperAdminRequestsRoute
   '/super-admin/settings': typeof SuperAdminSettingsRoute
   '/super-admin/users': typeof SuperAdminUsersRoute
+  '/employee/': typeof EmployeeIndexRoute
   '/org-admin/': typeof OrgAdminIndexRoute
   '/super-admin/': typeof SuperAdminIndexRoute
 }
@@ -216,6 +251,9 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/register-organization': typeof RegisterOrganizationRoute
+  '/employee/performance': typeof EmployeePerformanceRoute
+  '/employee/queue': typeof EmployeeQueueRoute
+  '/employee/schedule': typeof EmployeeScheduleRoute
   '/org-admin/ai': typeof OrgAdminAiRoute
   '/org-admin/analytics': typeof OrgAdminAnalyticsRoute
   '/org-admin/appointments': typeof OrgAdminAppointmentsRoute
@@ -235,6 +273,7 @@ export interface FileRoutesByTo {
   '/super-admin/requests': typeof SuperAdminRequestsRoute
   '/super-admin/settings': typeof SuperAdminSettingsRoute
   '/super-admin/users': typeof SuperAdminUsersRoute
+  '/employee': typeof EmployeeIndexRoute
   '/org-admin': typeof OrgAdminIndexRoute
   '/super-admin': typeof SuperAdminIndexRoute
 }
@@ -242,11 +281,15 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/book-appointment': typeof BookAppointmentRoute
+  '/employee': typeof EmployeeRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/org-admin': typeof OrgAdminRouteWithChildren
   '/register-organization': typeof RegisterOrganizationRoute
   '/super-admin': typeof SuperAdminRouteWithChildren
+  '/employee/performance': typeof EmployeePerformanceRoute
+  '/employee/queue': typeof EmployeeQueueRoute
+  '/employee/schedule': typeof EmployeeScheduleRoute
   '/org-admin/ai': typeof OrgAdminAiRoute
   '/org-admin/analytics': typeof OrgAdminAnalyticsRoute
   '/org-admin/appointments': typeof OrgAdminAppointmentsRoute
@@ -266,6 +309,7 @@ export interface FileRoutesById {
   '/super-admin/requests': typeof SuperAdminRequestsRoute
   '/super-admin/settings': typeof SuperAdminSettingsRoute
   '/super-admin/users': typeof SuperAdminUsersRoute
+  '/employee/': typeof EmployeeIndexRoute
   '/org-admin/': typeof OrgAdminIndexRoute
   '/super-admin/': typeof SuperAdminIndexRoute
 }
@@ -274,11 +318,15 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/book-appointment'
+    | '/employee'
     | '/forgot-password'
     | '/login'
     | '/org-admin'
     | '/register-organization'
     | '/super-admin'
+    | '/employee/performance'
+    | '/employee/queue'
+    | '/employee/schedule'
     | '/org-admin/ai'
     | '/org-admin/analytics'
     | '/org-admin/appointments'
@@ -298,6 +346,7 @@ export interface FileRouteTypes {
     | '/super-admin/requests'
     | '/super-admin/settings'
     | '/super-admin/users'
+    | '/employee/'
     | '/org-admin/'
     | '/super-admin/'
   fileRoutesByTo: FileRoutesByTo
@@ -307,6 +356,9 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/register-organization'
+    | '/employee/performance'
+    | '/employee/queue'
+    | '/employee/schedule'
     | '/org-admin/ai'
     | '/org-admin/analytics'
     | '/org-admin/appointments'
@@ -326,17 +378,22 @@ export interface FileRouteTypes {
     | '/super-admin/requests'
     | '/super-admin/settings'
     | '/super-admin/users'
+    | '/employee'
     | '/org-admin'
     | '/super-admin'
   id:
     | '__root__'
     | '/'
     | '/book-appointment'
+    | '/employee'
     | '/forgot-password'
     | '/login'
     | '/org-admin'
     | '/register-organization'
     | '/super-admin'
+    | '/employee/performance'
+    | '/employee/queue'
+    | '/employee/schedule'
     | '/org-admin/ai'
     | '/org-admin/analytics'
     | '/org-admin/appointments'
@@ -356,6 +413,7 @@ export interface FileRouteTypes {
     | '/super-admin/requests'
     | '/super-admin/settings'
     | '/super-admin/users'
+    | '/employee/'
     | '/org-admin/'
     | '/super-admin/'
   fileRoutesById: FileRoutesById
@@ -363,6 +421,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BookAppointmentRoute: typeof BookAppointmentRoute
+  EmployeeRoute: typeof EmployeeRouteWithChildren
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   OrgAdminRoute: typeof OrgAdminRouteWithChildren
@@ -407,6 +466,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/employee': {
+      id: '/employee'
+      path: '/employee'
+      fullPath: '/employee'
+      preLoaderRoute: typeof EmployeeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/book-appointment': {
       id: '/book-appointment'
       path: '/book-appointment'
@@ -434,6 +500,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/org-admin/'
       preLoaderRoute: typeof OrgAdminIndexRouteImport
       parentRoute: typeof OrgAdminRoute
+    }
+    '/employee/': {
+      id: '/employee/'
+      path: '/'
+      fullPath: '/employee/'
+      preLoaderRoute: typeof EmployeeIndexRouteImport
+      parentRoute: typeof EmployeeRoute
     }
     '/super-admin/users': {
       id: '/super-admin/users'
@@ -568,8 +641,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgAdminAiRouteImport
       parentRoute: typeof OrgAdminRoute
     }
+    '/employee/schedule': {
+      id: '/employee/schedule'
+      path: '/schedule'
+      fullPath: '/employee/schedule'
+      preLoaderRoute: typeof EmployeeScheduleRouteImport
+      parentRoute: typeof EmployeeRoute
+    }
+    '/employee/queue': {
+      id: '/employee/queue'
+      path: '/queue'
+      fullPath: '/employee/queue'
+      preLoaderRoute: typeof EmployeeQueueRouteImport
+      parentRoute: typeof EmployeeRoute
+    }
+    '/employee/performance': {
+      id: '/employee/performance'
+      path: '/performance'
+      fullPath: '/employee/performance'
+      preLoaderRoute: typeof EmployeePerformanceRouteImport
+      parentRoute: typeof EmployeeRoute
+    }
   }
 }
+
+interface EmployeeRouteChildren {
+  EmployeePerformanceRoute: typeof EmployeePerformanceRoute
+  EmployeeQueueRoute: typeof EmployeeQueueRoute
+  EmployeeScheduleRoute: typeof EmployeeScheduleRoute
+  EmployeeIndexRoute: typeof EmployeeIndexRoute
+}
+
+const EmployeeRouteChildren: EmployeeRouteChildren = {
+  EmployeePerformanceRoute: EmployeePerformanceRoute,
+  EmployeeQueueRoute: EmployeeQueueRoute,
+  EmployeeScheduleRoute: EmployeeScheduleRoute,
+  EmployeeIndexRoute: EmployeeIndexRoute,
+}
+
+const EmployeeRouteWithChildren = EmployeeRoute._addFileChildren(
+  EmployeeRouteChildren,
+)
 
 interface OrgAdminRouteChildren {
   OrgAdminAiRoute: typeof OrgAdminAiRoute
@@ -636,6 +748,7 @@ const SuperAdminRouteWithChildren = SuperAdminRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BookAppointmentRoute: BookAppointmentRoute,
+  EmployeeRoute: EmployeeRouteWithChildren,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   OrgAdminRoute: OrgAdminRouteWithChildren,

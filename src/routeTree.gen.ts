@@ -11,11 +11,13 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SuperAdminRouteImport } from './routes/super-admin'
 import { Route as RegisterOrganizationRouteImport } from './routes/register-organization'
+import { Route as OrgAdminRouteImport } from './routes/org-admin'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as BookAppointmentRouteImport } from './routes/book-appointment'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SuperAdminIndexRouteImport } from './routes/super-admin.index'
+import { Route as OrgAdminIndexRouteImport } from './routes/org-admin.index'
 import { Route as SuperAdminUsersRouteImport } from './routes/super-admin.users'
 import { Route as SuperAdminSettingsRouteImport } from './routes/super-admin.settings'
 import { Route as SuperAdminRequestsRouteImport } from './routes/super-admin.requests'
@@ -33,6 +35,11 @@ const SuperAdminRoute = SuperAdminRouteImport.update({
 const RegisterOrganizationRoute = RegisterOrganizationRouteImport.update({
   id: '/register-organization',
   path: '/register-organization',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrgAdminRoute = OrgAdminRouteImport.update({
+  id: '/org-admin',
+  path: '/org-admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -59,6 +66,11 @@ const SuperAdminIndexRoute = SuperAdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => SuperAdminRoute,
+} as any)
+const OrgAdminIndexRoute = OrgAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => OrgAdminRoute,
 } as any)
 const SuperAdminUsersRoute = SuperAdminUsersRouteImport.update({
   id: '/users',
@@ -106,6 +118,7 @@ export interface FileRoutesByFullPath {
   '/book-appointment': typeof BookAppointmentRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/org-admin': typeof OrgAdminRouteWithChildren
   '/register-organization': typeof RegisterOrganizationRoute
   '/super-admin': typeof SuperAdminRouteWithChildren
   '/super-admin/audit': typeof SuperAdminAuditRoute
@@ -116,6 +129,7 @@ export interface FileRoutesByFullPath {
   '/super-admin/requests': typeof SuperAdminRequestsRoute
   '/super-admin/settings': typeof SuperAdminSettingsRoute
   '/super-admin/users': typeof SuperAdminUsersRoute
+  '/org-admin/': typeof OrgAdminIndexRoute
   '/super-admin/': typeof SuperAdminIndexRoute
 }
 export interface FileRoutesByTo {
@@ -132,6 +146,7 @@ export interface FileRoutesByTo {
   '/super-admin/requests': typeof SuperAdminRequestsRoute
   '/super-admin/settings': typeof SuperAdminSettingsRoute
   '/super-admin/users': typeof SuperAdminUsersRoute
+  '/org-admin': typeof OrgAdminIndexRoute
   '/super-admin': typeof SuperAdminIndexRoute
 }
 export interface FileRoutesById {
@@ -140,6 +155,7 @@ export interface FileRoutesById {
   '/book-appointment': typeof BookAppointmentRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/org-admin': typeof OrgAdminRouteWithChildren
   '/register-organization': typeof RegisterOrganizationRoute
   '/super-admin': typeof SuperAdminRouteWithChildren
   '/super-admin/audit': typeof SuperAdminAuditRoute
@@ -150,6 +166,7 @@ export interface FileRoutesById {
   '/super-admin/requests': typeof SuperAdminRequestsRoute
   '/super-admin/settings': typeof SuperAdminSettingsRoute
   '/super-admin/users': typeof SuperAdminUsersRoute
+  '/org-admin/': typeof OrgAdminIndexRoute
   '/super-admin/': typeof SuperAdminIndexRoute
 }
 export interface FileRouteTypes {
@@ -159,6 +176,7 @@ export interface FileRouteTypes {
     | '/book-appointment'
     | '/forgot-password'
     | '/login'
+    | '/org-admin'
     | '/register-organization'
     | '/super-admin'
     | '/super-admin/audit'
@@ -169,6 +187,7 @@ export interface FileRouteTypes {
     | '/super-admin/requests'
     | '/super-admin/settings'
     | '/super-admin/users'
+    | '/org-admin/'
     | '/super-admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -185,6 +204,7 @@ export interface FileRouteTypes {
     | '/super-admin/requests'
     | '/super-admin/settings'
     | '/super-admin/users'
+    | '/org-admin'
     | '/super-admin'
   id:
     | '__root__'
@@ -192,6 +212,7 @@ export interface FileRouteTypes {
     | '/book-appointment'
     | '/forgot-password'
     | '/login'
+    | '/org-admin'
     | '/register-organization'
     | '/super-admin'
     | '/super-admin/audit'
@@ -202,6 +223,7 @@ export interface FileRouteTypes {
     | '/super-admin/requests'
     | '/super-admin/settings'
     | '/super-admin/users'
+    | '/org-admin/'
     | '/super-admin/'
   fileRoutesById: FileRoutesById
 }
@@ -210,6 +232,7 @@ export interface RootRouteChildren {
   BookAppointmentRoute: typeof BookAppointmentRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
+  OrgAdminRoute: typeof OrgAdminRouteWithChildren
   RegisterOrganizationRoute: typeof RegisterOrganizationRoute
   SuperAdminRoute: typeof SuperAdminRouteWithChildren
 }
@@ -228,6 +251,13 @@ declare module '@tanstack/react-router' {
       path: '/register-organization'
       fullPath: '/register-organization'
       preLoaderRoute: typeof RegisterOrganizationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/org-admin': {
+      id: '/org-admin'
+      path: '/org-admin'
+      fullPath: '/org-admin'
+      preLoaderRoute: typeof OrgAdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -264,6 +294,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/super-admin/'
       preLoaderRoute: typeof SuperAdminIndexRouteImport
       parentRoute: typeof SuperAdminRoute
+    }
+    '/org-admin/': {
+      id: '/org-admin/'
+      path: '/'
+      fullPath: '/org-admin/'
+      preLoaderRoute: typeof OrgAdminIndexRouteImport
+      parentRoute: typeof OrgAdminRoute
     }
     '/super-admin/users': {
       id: '/super-admin/users'
@@ -324,6 +361,18 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface OrgAdminRouteChildren {
+  OrgAdminIndexRoute: typeof OrgAdminIndexRoute
+}
+
+const OrgAdminRouteChildren: OrgAdminRouteChildren = {
+  OrgAdminIndexRoute: OrgAdminIndexRoute,
+}
+
+const OrgAdminRouteWithChildren = OrgAdminRoute._addFileChildren(
+  OrgAdminRouteChildren,
+)
+
 interface SuperAdminRouteChildren {
   SuperAdminAuditRoute: typeof SuperAdminAuditRoute
   SuperAdminCategoriesRoute: typeof SuperAdminCategoriesRoute
@@ -357,6 +406,7 @@ const rootRouteChildren: RootRouteChildren = {
   BookAppointmentRoute: BookAppointmentRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
+  OrgAdminRoute: OrgAdminRouteWithChildren,
   RegisterOrganizationRoute: RegisterOrganizationRoute,
   SuperAdminRoute: SuperAdminRouteWithChildren,
 }

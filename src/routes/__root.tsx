@@ -10,6 +10,7 @@ import "@fontsource/sora/600.css";
 import "@fontsource/sora/700.css";
 
 import appCss from "../styles.css?url";
+import logoMark from "@/assets/logo-mark.png";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { ThemeProvider } from "@/lib/theme";
 import { AuthProvider } from "@/lib/auth";

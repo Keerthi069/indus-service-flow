@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
-import { Moon, Sun, Waves } from "lucide-react";
+import { Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import logoMark from "@/assets/logo-mark.png";
 import { useTheme } from "@/lib/theme";
 
 const nav = [

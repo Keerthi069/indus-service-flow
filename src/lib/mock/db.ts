@@ -83,67 +83,80 @@ const initial: DB = {
   notifications: NOTIFICATIONS_SEED, contact_messages: CONTACT_SEED,
 };
 
+let cache: DB | null = null;
+let version = 0;
+const listeners = new Set<() => void>();
+
 function read(): DB {
-  if (typeof window === "undefined") return initial;
+  if (cache) return cache;
+  if (typeof window === "undefined") { cache = initial; return cache; }
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) {
       localStorage.setItem(KEY, JSON.stringify(initial));
-      return initial;
+      cache = initial;
+    } else {
+      cache = JSON.parse(raw);
     }
-    return JSON.parse(raw);
-  } catch { return initial; }
+  } catch { cache = initial; }
+  return cache!;
 }
-function write(db: DB) {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(KEY, JSON.stringify(db));
-  window.dispatchEvent(new CustomEvent("isf:db-change"));
+function write(next: DB) {
+  cache = next;
+  version++;
+  if (typeof window !== "undefined") localStorage.setItem(KEY, JSON.stringify(next));
+  listeners.forEach(l => l());
 }
 
 export const db = {
   all<K extends keyof DB>(table: K): DB[K] { return read()[table]; },
   set<K extends keyof DB>(table: K, rows: DB[K]) {
-    const cur = read(); (cur as any)[table] = rows; write(cur);
+    const cur = read(); write({ ...cur, [table]: rows } as DB);
   },
   insert<K extends keyof DB>(table: K, row: DB[K][number]) {
-    const cur = read(); (cur[table] as any[]).push(row); write(cur);
+    const cur = read();
+    write({ ...cur, [table]: [...(cur[table] as any[]), row] } as DB);
   },
   update<K extends keyof DB>(table: K, id: ID, patch: Partial<DB[K][number]>) {
     const cur = read();
-    (cur[table] as any[]) = (cur[table] as any[]).map(r => r.id === id ? { ...r, ...patch, updated_at: new Date().toISOString() } : r);
-    write(cur);
+    write({ ...cur, [table]: (cur[table] as any[]).map(r => r.id === id ? { ...r, ...patch, updated_at: new Date().toISOString() } : r) } as DB);
   },
   remove<K extends keyof DB>(table: K, id: ID) {
     const cur = read();
-    (cur[table] as any[]) = (cur[table] as any[]).filter(r => r.id !== id);
-    write(cur);
+    write({ ...cur, [table]: (cur[table] as any[]).filter(r => r.id !== id) } as DB);
   },
-  reset() { if (typeof window !== "undefined") { localStorage.removeItem(KEY); read(); } },
+  reset() {
+    if (typeof window !== "undefined") localStorage.removeItem(KEY);
+    cache = null; version++; listeners.forEach(l => l());
+  },
+  _version() { return version; },
 };
 
 export function uid(prefix = "id"): ID {
   return `${prefix}_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36).slice(-4)}`;
 }
 
-import { useEffect, useState, useSyncExternalStore } from "react";
-export function useDb<T>(selector: () => T): T {
-  // re-render on db change
-  const get = () => selector();
-  const subscribe = (cb: () => void) => {
-    const h = () => cb();
-    if (typeof window !== "undefined") {
-      window.addEventListener("isf:db-change", h);
-      window.addEventListener("storage", h);
-    }
-    return () => {
-      if (typeof window !== "undefined") {
-        window.removeEventListener("isf:db-change", h);
-        window.removeEventListener("storage", h);
-      }
-    };
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+
+const subscribe = (cb: () => void) => {
+  listeners.add(cb);
+  const onStorage = () => { cache = null; version++; cb(); };
+  if (typeof window !== "undefined") window.addEventListener("storage", onStorage);
+  return () => {
+    listeners.delete(cb);
+    if (typeof window !== "undefined") window.removeEventListener("storage", onStorage);
   };
-  // useSyncExternalStore needs stable snapshot; selector should be pure of db
-  return useSyncExternalStore(subscribe, get, get);
+};
+
+export function useDb<T>(selector: () => T): T {
+  const ref = useRef<{ v: number; value: T } | null>(null);
+  const getSnapshot = () => {
+    if (!ref.current || ref.current.v !== version) {
+      ref.current = { v: version, value: selector() };
+    }
+    return ref.current.value;
+  };
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 
 // SSR-safe hydration helper

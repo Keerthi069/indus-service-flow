@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader } from "@/components/portal/PortalShell";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,8 +17,8 @@ function SchedPage() {
           <div />
           {DAYS.map(d => <div key={d} className="p-2 text-center text-xs font-semibold text-muted-foreground">{d}</div>)}
           {SLOTS.map(s => (
-            <>
-              <div key={s} className="p-2 text-right text-xs text-muted-foreground">{s}</div>
+            <Fragment key={s}>
+              <div className="p-2 text-right text-xs text-muted-foreground">{s}</div>
               {DAYS.map(d => {
                 const off = d === "Sun";
                 const brk = s === "13:00";
@@ -25,7 +26,7 @@ function SchedPage() {
                   {off ? "Off" : brk ? "Break" : "Available"}
                 </div>;
               })}
-            </>
+            </Fragment>
           ))}
         </div>
       </CardContent></Card>

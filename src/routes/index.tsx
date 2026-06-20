@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { db, uid } from "@/lib/mock/db";
+import heroReception from "@/assets/hero-reception.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({

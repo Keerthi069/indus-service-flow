@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Waves } from "lucide-react";
+import logoMark from "@/assets/logo-mark.png";
 
 export function SiteFooter() {
   return (

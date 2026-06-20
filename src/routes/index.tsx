@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { db, uid } from "@/lib/mock/db";
+import heroReception from "@/assets/hero-reception.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -131,33 +132,15 @@ function Hero() {
 
 function HeroVisual() {
   return (
-    <div className="relative mx-auto w-full max-w-md">
-      <div className="rounded-2xl border border-border bg-card p-5 shadow-2xl">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-xs text-muted-foreground">Live Queue · Apollo Chennai</div>
-            <div className="font-display text-lg font-semibold">Cardiology Counter 2</div>
-          </div>
-          <Badge className="bg-success text-success-foreground">Serving</Badge>
-        </div>
-        <div className="mt-5 grid grid-cols-3 gap-3 text-center">
-          <Stat label="Token" value="T-1042" />
-          <Stat label="Waiting" value="14" />
-          <Stat label="Avg Wait" value="11m" />
-        </div>
-        <div className="mt-5 space-y-2">
-          {[
-            { t: "T-1043", n: "Ananya Sharma", s: "Cardiology" },
-            { t: "T-1044", n: "Rohan Gupta", s: "Cardiology" },
-            { t: "T-1045", n: "Priya Desai", s: "Diagnostic" },
-          ].map(r => (
-            <div key={r.t} className="flex items-center justify-between rounded-lg border border-border/70 bg-muted/40 px-3 py-2 text-sm">
-              <span className="font-medium">{r.t}</span>
-              <span className="text-muted-foreground">{r.n}</span>
-              <span className="text-xs">{r.s}</span>
-            </div>
-          ))}
-        </div>
+    <div className="relative mx-auto w-full max-w-xl">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+        <img
+          src={heroReception}
+          alt="Customers being served at a modern reception with a live token display"
+          width={1280}
+          height={960}
+          className="h-full w-full object-cover"
+        />
       </div>
       <div className="absolute -bottom-6 -left-6 hidden rounded-xl border border-border bg-card p-4 shadow-xl md:block">
         <div className="text-xs text-muted-foreground">Wait time reduced</div>
@@ -167,15 +150,6 @@ function HeroVisual() {
         <div className="text-xs text-muted-foreground">CSAT</div>
         <div className="font-display text-2xl font-bold text-secondary">4.8/5</div>
       </div>
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg bg-muted/50 py-2">
-      <div className="font-display text-base font-semibold">{value}</div>
-      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
     </div>
   );
 }

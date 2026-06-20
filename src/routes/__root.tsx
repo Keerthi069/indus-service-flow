@@ -10,6 +10,7 @@ import "@fontsource/sora/600.css";
 import "@fontsource/sora/700.css";
 
 import appCss from "../styles.css?url";
+import logoMark from "@/assets/logo-mark.png";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { ThemeProvider } from "@/lib/theme";
 import { AuthProvider } from "@/lib/auth";
@@ -69,7 +70,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/f1941dd3-43c5-4967-9d60-f198cf78c7a3/id-preview-a47854f2--9a732e80-d6dd-4289-8f24-938d5d0e0110.lovable.app-1781870024270.png" },
       { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/f1941dd3-43c5-4967-9d60-f198cf78c7a3/id-preview-a47854f2--9a732e80-d6dd-4289-8f24-938d5d0e0110.lovable.app-1781870024270.png" },
     ],
-    links: [{ rel: "stylesheet", href: appCss }],
+    links: [
+      { rel: "stylesheet", href: appCss },
+      { rel: "icon", type: "image/png", href: logoMark },
+      { rel: "apple-touch-icon", href: logoMark },
+    ],
   }),
   shellComponent: RootShell,
   component: RootComponent,

@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
-import { Moon, Sun, Waves } from "lucide-react";
+import { Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import logoMark from "@/assets/logo-mark.png";
 import { useTheme } from "@/lib/theme";
 
 const nav = [
@@ -17,11 +18,9 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/80 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 lg:px-8">
-        <Link to="/" className="flex items-center gap-2 font-display text-lg font-bold tracking-tight">
-          <span className="grid h-9 w-9 place-items-center rounded-lg bg-primary text-primary-foreground shadow-sm">
-            <Waves className="h-5 w-5" />
-          </span>
-          <span>Indus <span className="text-primary">Service Flow</span></span>
+        <Link to="/" className="flex items-center gap-2.5 font-display text-base font-bold tracking-tight">
+          <img src={logoMark} alt="Indus Service Flow" className="h-9 w-9 object-contain" width={36} height={36} />
+          <span className="hidden sm:inline">Indus <span className="text-primary">Service Flow</span></span>
         </Link>
         <nav className="hidden items-center gap-7 text-sm font-medium text-muted-foreground lg:flex">
           {nav.map(n => (

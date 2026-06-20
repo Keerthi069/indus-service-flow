@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Waves } from "lucide-react";
+import logoMark from "@/assets/logo-mark.png";
 
 export function SiteFooter() {
   return (
@@ -7,7 +7,7 @@ export function SiteFooter() {
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 md:grid-cols-4 lg:px-8">
         <div>
           <div className="flex items-center gap-2 font-display font-bold">
-            <span className="grid h-8 w-8 place-items-center rounded-md bg-primary text-primary-foreground"><Waves className="h-4 w-4" /></span>
+            <img src={logoMark} alt="" className="h-8 w-8 object-contain" width={32} height={32} />
             Indus Service Flow
           </div>
           <p className="mt-3 text-sm text-muted-foreground">Smart appointment and queue management for service-led businesses across India.</p>

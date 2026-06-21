@@ -136,19 +136,11 @@ function HeroVisual() {
       <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
         <img
           src={heroReception}
-          alt="Customers being served at a modern reception with a live token display"
+          alt="Modern service reception helping customers across industries"
           width={1280}
           height={960}
           className="h-full w-full object-cover"
         />
-      </div>
-      <div className="absolute -bottom-6 -left-6 hidden rounded-xl border border-border bg-card p-4 shadow-xl md:block">
-        <div className="text-xs text-muted-foreground">Wait time reduced</div>
-        <div className="font-display text-2xl font-bold text-primary">−47%</div>
-      </div>
-      <div className="absolute -top-6 -right-6 hidden rounded-xl border border-border bg-card p-4 shadow-xl md:block">
-        <div className="text-xs text-muted-foreground">CSAT</div>
-        <div className="font-display text-2xl font-bold text-secondary">4.8/5</div>
       </div>
     </div>
   );

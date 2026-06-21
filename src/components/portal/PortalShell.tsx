@@ -136,9 +136,7 @@ export function PortalShell({ role, brand, items, requireRole }: { role: Role; b
 }
 
 export function PageHeader({ title, subtitle, actions, back }: { title: string; subtitle?: string; actions?: ReactNode; back?: boolean | string }) {
-  const router = useRouterState();
   const nav = useNavigate();
-  const showBack = back !== false && (back !== undefined || true);
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
       <div className="flex items-start gap-3">

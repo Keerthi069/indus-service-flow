@@ -24,7 +24,7 @@ function QStatus() {
 
   return (
     <div>
-      <PageHeader title="Live queue status" subtitle="Auto-refreshing every 5 seconds." />
+      <PageHeader title="Live queue status" subtitle="Auto-refreshing every 5 seconds." back />
       <div className="grid gap-4 md:grid-cols-4">
         <Kpi label="Your token" value={apt.token} />
         <Kpi label="Current position" value={`#${pos}`} />

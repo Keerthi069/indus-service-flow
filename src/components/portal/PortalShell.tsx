@@ -38,7 +38,17 @@ export function PortalShell({ role, brand, items, requireRole }: { role: Role; b
     return n.role === "customer" && n.user_id === user.id;
   }));
   const unread = notifications.filter(n => !n.read).length;
-  const org = useDb(() => user?.organization_id ? db.all("organizations").find(o => o.id === user.organization_id) : undefined);
+  const org = useDb(() => {
+    if (!user) return undefined;
+    if (user.organization_id) return db.all("organizations").find(o => o.id === user.organization_id);
+    if (user.role === "customer") {
+      const appts = db.all("appointments").filter(a => a.customer_email === user.email);
+      if (!appts.length) return undefined;
+      const latest = appts.sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))[0];
+      return db.all("organizations").find(o => o.id === latest.organization_id);
+    }
+    return undefined;
+  });
 
   if (!isHydrated || !user) return <div className="grid min-h-screen place-items-center text-sm text-muted-foreground">Loading...</div>;
 
@@ -125,12 +135,22 @@ export function PortalShell({ role, brand, items, requireRole }: { role: Role; b
   );
 }
 
-export function PageHeader({ title, subtitle, actions }: { title: string; subtitle?: string; actions?: ReactNode }) {
+export function PageHeader({ title, subtitle, actions, back }: { title: string; subtitle?: string; actions?: ReactNode; back?: boolean | string }) {
+  const router = useRouterState();
+  const nav = useNavigate();
+  const showBack = back !== false && (back !== undefined || true);
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-      <div>
-        <h1 className="font-display text-2xl font-bold tracking-tight">{title}</h1>
-        {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
+      <div className="flex items-start gap-3">
+        {back && (
+          <Button variant="outline" size="sm" className="mt-1" onClick={() => typeof back === "string" ? nav({ to: back }) : window.history.back()}>
+            ← Back
+          </Button>
+        )}
+        <div>
+          <h1 className="font-display text-2xl font-bold tracking-tight">{title}</h1>
+          {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
+        </div>
       </div>
       {actions && <div className="flex gap-2">{actions}</div>}
     </div>

@@ -46,7 +46,6 @@ import { Route as EmployeeQueueRouteImport } from './routes/employee.queue'
 import { Route as EmployeePerformanceRouteImport } from './routes/employee.performance'
 import { Route as CustomerQueueStatusRouteImport } from './routes/customer.queue-status'
 import { Route as CustomerProfileRouteImport } from './routes/customer.profile'
-import { Route as CustomerHistoryRouteImport } from './routes/customer.history'
 import { Route as CustomerFeedbackRouteImport } from './routes/customer.feedback'
 import { Route as CustomerAppointmentsRouteImport } from './routes/customer.appointments'
 
@@ -236,11 +235,6 @@ const CustomerProfileRoute = CustomerProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => CustomerRoute,
 } as any)
-const CustomerHistoryRoute = CustomerHistoryRouteImport.update({
-  id: '/history',
-  path: '/history',
-  getParentRoute: () => CustomerRoute,
-} as any)
 const CustomerFeedbackRoute = CustomerFeedbackRouteImport.update({
   id: '/feedback',
   path: '/feedback',
@@ -264,7 +258,6 @@ export interface FileRoutesByFullPath {
   '/super-admin': typeof SuperAdminRouteWithChildren
   '/customer/appointments': typeof CustomerAppointmentsRoute
   '/customer/feedback': typeof CustomerFeedbackRoute
-  '/customer/history': typeof CustomerHistoryRoute
   '/customer/profile': typeof CustomerProfileRoute
   '/customer/queue-status': typeof CustomerQueueStatusRoute
   '/employee/performance': typeof EmployeePerformanceRoute
@@ -302,7 +295,6 @@ export interface FileRoutesByTo {
   '/register-organization': typeof RegisterOrganizationRoute
   '/customer/appointments': typeof CustomerAppointmentsRoute
   '/customer/feedback': typeof CustomerFeedbackRoute
-  '/customer/history': typeof CustomerHistoryRoute
   '/customer/profile': typeof CustomerProfileRoute
   '/customer/queue-status': typeof CustomerQueueStatusRoute
   '/employee/performance': typeof EmployeePerformanceRoute
@@ -345,7 +337,6 @@ export interface FileRoutesById {
   '/super-admin': typeof SuperAdminRouteWithChildren
   '/customer/appointments': typeof CustomerAppointmentsRoute
   '/customer/feedback': typeof CustomerFeedbackRoute
-  '/customer/history': typeof CustomerHistoryRoute
   '/customer/profile': typeof CustomerProfileRoute
   '/customer/queue-status': typeof CustomerQueueStatusRoute
   '/employee/performance': typeof EmployeePerformanceRoute
@@ -389,7 +380,6 @@ export interface FileRouteTypes {
     | '/super-admin'
     | '/customer/appointments'
     | '/customer/feedback'
-    | '/customer/history'
     | '/customer/profile'
     | '/customer/queue-status'
     | '/employee/performance'
@@ -427,7 +417,6 @@ export interface FileRouteTypes {
     | '/register-organization'
     | '/customer/appointments'
     | '/customer/feedback'
-    | '/customer/history'
     | '/customer/profile'
     | '/customer/queue-status'
     | '/employee/performance'
@@ -469,7 +458,6 @@ export interface FileRouteTypes {
     | '/super-admin'
     | '/customer/appointments'
     | '/customer/feedback'
-    | '/customer/history'
     | '/customer/profile'
     | '/customer/queue-status'
     | '/employee/performance'
@@ -773,13 +761,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CustomerProfileRouteImport
       parentRoute: typeof CustomerRoute
     }
-    '/customer/history': {
-      id: '/customer/history'
-      path: '/history'
-      fullPath: '/customer/history'
-      preLoaderRoute: typeof CustomerHistoryRouteImport
-      parentRoute: typeof CustomerRoute
-    }
     '/customer/feedback': {
       id: '/customer/feedback'
       path: '/feedback'
@@ -800,7 +781,6 @@ declare module '@tanstack/react-router' {
 interface CustomerRouteChildren {
   CustomerAppointmentsRoute: typeof CustomerAppointmentsRoute
   CustomerFeedbackRoute: typeof CustomerFeedbackRoute
-  CustomerHistoryRoute: typeof CustomerHistoryRoute
   CustomerProfileRoute: typeof CustomerProfileRoute
   CustomerQueueStatusRoute: typeof CustomerQueueStatusRoute
   CustomerIndexRoute: typeof CustomerIndexRoute
@@ -809,7 +789,6 @@ interface CustomerRouteChildren {
 const CustomerRouteChildren: CustomerRouteChildren = {
   CustomerAppointmentsRoute: CustomerAppointmentsRoute,
   CustomerFeedbackRoute: CustomerFeedbackRoute,
-  CustomerHistoryRoute: CustomerHistoryRoute,
   CustomerProfileRoute: CustomerProfileRoute,
   CustomerQueueStatusRoute: CustomerQueueStatusRoute,
   CustomerIndexRoute: CustomerIndexRoute,

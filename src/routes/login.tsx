@@ -32,8 +32,10 @@ function LoginPage() {
       const u = login(email.trim(), password);
       setLoading(false);
       if (!u) { toast.error("Invalid email or password"); return; }
+      const target = search.redirect || rolePortalPath(u.role);
+      console.log("[login] redirect target:", target, "role:", u.role, "search.redirect:", search.redirect);
       toast.success(`Welcome back, ${u.name.split(" ")[0]}`);
-      nav({ to: search.redirect || rolePortalPath(u.role) });
+      nav({ to: target, replace: true });
     }, 400);
   }
 

@@ -9,6 +9,7 @@ export const Route = createFileRoute("/employee/")({ component: EmpDash });
 
 function EmpDash() {
   const { user } = useAuth();
+  const org = useDb(() => db.all("organizations").find(o => o.id === user?.organization_id));
   const apts = useDb(() => db.all("appointments").filter(a => a.organization_id === user?.organization_id));
   const today = new Date().toISOString().slice(0, 10);
   const todays = apts.filter(a => a.date === today);
@@ -17,6 +18,17 @@ function EmpDash() {
 
   return (
     <div>
+      {org && (
+        <div className="mb-6 flex items-center gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
+          {org.logo
+            ? <img src={org.logo} alt={org.name} className="h-12 w-12 rounded-lg object-cover" />
+            : <span className="grid h-12 w-12 place-items-center rounded-lg bg-primary/10 text-base font-bold text-primary">{org.name.slice(0, 1)}</span>}
+          <div>
+            <div className="font-display text-lg font-semibold leading-tight">{org.name}</div>
+            <div className="text-xs uppercase tracking-wider text-muted-foreground">{org.city}{org.state ? `, ${org.state}` : ""} · Employee workspace</div>
+          </div>
+        </div>
+      )}
       <PageHeader title={`Welcome, ${user?.name.split(" ")[0]}`} subtitle="Your service desk at a glance." />
       <div className="grid gap-4 md:grid-cols-4">
         <Kpi label="Customers served today" value={served} icon={Users} />

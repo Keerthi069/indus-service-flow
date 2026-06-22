@@ -19,14 +19,14 @@ function FB() {
   const eligible = completed.filter(c => !feedback.some(f => f.appointment_id === c.id));
 
   if (eligible.length === 0) return (
-    <div><PageHeader title="Feedback" subtitle="Available after appointment completion." back />
+    <div><PageHeader title="Feedback" subtitle="Available after appointment completion." />
       <Card><CardContent className="p-10 text-center text-sm text-muted-foreground">No completed appointments awaiting feedback.</CardContent></Card>
     </div>
   );
 
   return (
     <div>
-      <PageHeader title="Feedback" subtitle="Help us improve your next visit." back />
+      <PageHeader title="Feedback" subtitle="Help us improve your next visit." />
       <div className="grid gap-4">
         {eligible.map(apt => <FeedbackForm key={apt.id} apt={apt} userId={user!.id} />)}
       </div>

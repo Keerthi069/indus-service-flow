@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Building2, ShieldCheck, Users, IndianRupee, CalendarCheck, Smile } from "lucide-react";
+import { Building2, ShieldCheck, IndianRupee } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { PageHeader, Kpi } from "@/components/portal/PortalShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,16 +12,11 @@ export const Route = createFileRoute("/super-admin/")({
 function Dashboard() {
   const orgs = useDb(() => db.all("organizations"));
   const reqs = useDb(() => db.all("org_requests"));
-  const users = useDb(() => db.all("users"));
-  const customers = useDb(() => db.all("customers"));
-  const apts = useDb(() => db.all("appointments"));
-  const feedback = useDb(() => db.all("feedback"));
   const audit = useDb(() => db.all("audit_logs"));
 
   const activeOrgs = orgs.filter(o => o.status === "approved" || o.status === "active").length;
   const pending = reqs.filter(r => r.status === "pending").length;
   const mrr = orgs.reduce((acc, o) => acc + (o.plan === "enterprise" ? 49999 : o.plan === "professional" ? 24999 : 9999), 0);
-  const csat = feedback.length ? (feedback.reduce((a, f) => a + f.rating, 0) / feedback.length).toFixed(1) : "—";
 
   const byCategory = ["hospital", "clinic", "bank", "retail", "support"].map(c => ({ name: c, value: orgs.filter(o => o.category === c).length }));
   const growth = Array.from({ length: 12 }).map((_, i) => ({
@@ -36,15 +31,11 @@ function Dashboard() {
   return (
     <div>
       <PageHeader title="Platform Overview" subtitle="Health of the multi-tenant platform across organizations." />
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Kpi label="Total Organizations" value={orgs.length} trend={`+${pending} pending`} icon={Building2} />
         <Kpi label="Pending Requests" value={pending} icon={ShieldCheck} />
         <Kpi label="Active Organizations" value={activeOrgs} icon={Building2} />
-        <Kpi label="Total Users" value={users.length} icon={Users} />
-        <Kpi label="Total Customers" value={customers.length} icon={Users} />
-        <Kpi label="Total Appointments" value={apts.length} icon={CalendarCheck} />
         <Kpi label="Monthly Revenue" value={`₹${(mrr / 100000).toFixed(1)}L`} trend="+8% MoM" icon={IndianRupee} />
-        <Kpi label="Customer Satisfaction" value={`${csat} / 5`} icon={Smile} />
       </div>
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">

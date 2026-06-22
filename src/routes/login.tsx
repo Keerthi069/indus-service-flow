@@ -17,13 +17,19 @@ export const Route = createFileRoute("/login")({
 });
 
 function LoginPage() {
-  const { login } = useAuth();
+  const { login, user, isHydrated } = useAuth();
   const nav = useNavigate();
   const search = useSearch({ from: "/login" });
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(true);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isHydrated || !user) return;
+    const target = search.redirect || rolePortalPath(user.role);
+    nav({ to: target, replace: true });
+  }, [isHydrated, user, search.redirect, nav]);
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -33,7 +39,6 @@ function LoginPage() {
       setLoading(false);
       if (!u) { toast.error("Invalid email or password"); return; }
       const target = search.redirect || rolePortalPath(u.role);
-      console.log("[login] redirect target:", target, "role:", u.role, "search.redirect:", search.redirect);
       toast.success(`Welcome back, ${u.name.split(" ")[0]}`);
       nav({ to: target, replace: true });
     }, 400);

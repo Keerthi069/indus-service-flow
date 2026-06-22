@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { Waves } from "lucide-react";
@@ -17,13 +17,19 @@ export const Route = createFileRoute("/login")({
 });
 
 function LoginPage() {
-  const { login } = useAuth();
+  const { login, user, isHydrated } = useAuth();
   const nav = useNavigate();
   const search = useSearch({ from: "/login" });
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(true);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isHydrated || !user) return;
+    const target = search.redirect || rolePortalPath(user.role);
+    nav({ to: target, replace: true });
+  }, [isHydrated, user, search.redirect, nav]);
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -32,8 +38,9 @@ function LoginPage() {
       const u = login(email.trim(), password);
       setLoading(false);
       if (!u) { toast.error("Invalid email or password"); return; }
+      const target = search.redirect || rolePortalPath(u.role);
       toast.success(`Welcome back, ${u.name.split(" ")[0]}`);
-      nav({ to: search.redirect || rolePortalPath(u.role) });
+      nav({ to: target, replace: true });
     }, 400);
   }
 
@@ -67,7 +74,7 @@ function LoginPage() {
               <label className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Checkbox checked={remember} onCheckedChange={v => setRemember(!!v)} /> Remember me
               </label>
-              <Button disabled={loading} type="submit" className="w-full">{loading ? "Signing in..." : "Login"}</Button>
+              <Button disabled={loading || !isHydrated} type="submit" className="w-full">{loading || !isHydrated ? "Signing in..." : "Login"}</Button>
             </form>
             <div className="mt-6 rounded-lg border border-dashed border-border bg-muted/40 p-3 text-xs text-muted-foreground">
               <div className="font-medium text-foreground">Demo accounts</div>

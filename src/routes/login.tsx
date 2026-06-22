@@ -26,8 +26,9 @@ function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!isHydrated || !user) return;
+    if (!isHydrated || !user) { console.log("[login guard] not redirecting:", { isHydrated, hasUser: !!user }); return; }
     const target = search.redirect || rolePortalPath(user.role);
+    console.log("[login guard] redirecting to:", target, "user.role:", user.role);
     nav({ to: target, replace: true });
   }, [isHydrated, user, search.redirect, nav]);
 

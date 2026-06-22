@@ -71,6 +71,7 @@ function RegisterOrg() {
         </div>
       </div>
       <div className="mx-auto max-w-3xl px-4 py-10">
+        <Button asChild variant="ghost" size="sm" className="-ml-2 mb-4"><Link to="/">← Back to home</Link></Button>
         <div className="mb-6 flex items-center gap-3">
           <span className="grid h-12 w-12 place-items-center rounded-xl bg-primary/10 text-primary"><Building2 className="h-6 w-6" /></span>
           <div>

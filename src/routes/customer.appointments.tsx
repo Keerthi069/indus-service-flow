@@ -29,7 +29,7 @@ function MyAppts() {
 
   return (
     <div>
-      <PageHeader title="My appointments" subtitle="View your ongoing and previous appointments." back />
+      <PageHeader title="My appointments" subtitle="View your ongoing and previous appointments." />
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="ongoing">Ongoing ({ongoing.length})</TabsTrigger>

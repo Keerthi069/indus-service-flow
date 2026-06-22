@@ -22,7 +22,7 @@ function ProfilePage() {
   }
   return (
     <div>
-      <PageHeader title="My profile" subtitle="Keep your contact details current." back />
+      <PageHeader title="My profile" subtitle="Keep your contact details current." />
       <Card className="max-w-2xl"><CardHeader><CardTitle>Personal information</CardTitle></CardHeader>
         <CardContent>
           <form className="grid gap-4" onSubmit={save}>

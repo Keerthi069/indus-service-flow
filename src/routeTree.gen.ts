@@ -27,7 +27,6 @@ import { Route as SuperAdminSettingsRouteImport } from './routes/super-admin.set
 import { Route as SuperAdminRequestsRouteImport } from './routes/super-admin.requests'
 import { Route as SuperAdminReportsRouteImport } from './routes/super-admin.reports'
 import { Route as SuperAdminOrganizationsRouteImport } from './routes/super-admin.organizations'
-import { Route as SuperAdminContactRouteImport } from './routes/super-admin.contact'
 import { Route as SuperAdminCategoriesRouteImport } from './routes/super-admin.categories'
 import { Route as SuperAdminAuditRouteImport } from './routes/super-admin.audit'
 import { Route as OrgAdminSimulationsRouteImport } from './routes/org-admin.simulations'
@@ -137,11 +136,6 @@ const SuperAdminReportsRoute = SuperAdminReportsRouteImport.update({
 const SuperAdminOrganizationsRoute = SuperAdminOrganizationsRouteImport.update({
   id: '/organizations',
   path: '/organizations',
-  getParentRoute: () => SuperAdminRoute,
-} as any)
-const SuperAdminContactRoute = SuperAdminContactRouteImport.update({
-  id: '/contact',
-  path: '/contact',
   getParentRoute: () => SuperAdminRoute,
 } as any)
 const SuperAdminCategoriesRoute = SuperAdminCategoriesRouteImport.update({
@@ -276,7 +270,6 @@ export interface FileRoutesByFullPath {
   '/org-admin/simulations': typeof OrgAdminSimulationsRoute
   '/super-admin/audit': typeof SuperAdminAuditRoute
   '/super-admin/categories': typeof SuperAdminCategoriesRoute
-  '/super-admin/contact': typeof SuperAdminContactRoute
   '/super-admin/organizations': typeof SuperAdminOrganizationsRoute
   '/super-admin/reports': typeof SuperAdminReportsRoute
   '/super-admin/requests': typeof SuperAdminRequestsRoute
@@ -313,7 +306,6 @@ export interface FileRoutesByTo {
   '/org-admin/simulations': typeof OrgAdminSimulationsRoute
   '/super-admin/audit': typeof SuperAdminAuditRoute
   '/super-admin/categories': typeof SuperAdminCategoriesRoute
-  '/super-admin/contact': typeof SuperAdminContactRoute
   '/super-admin/organizations': typeof SuperAdminOrganizationsRoute
   '/super-admin/reports': typeof SuperAdminReportsRoute
   '/super-admin/requests': typeof SuperAdminRequestsRoute
@@ -355,7 +347,6 @@ export interface FileRoutesById {
   '/org-admin/simulations': typeof OrgAdminSimulationsRoute
   '/super-admin/audit': typeof SuperAdminAuditRoute
   '/super-admin/categories': typeof SuperAdminCategoriesRoute
-  '/super-admin/contact': typeof SuperAdminContactRoute
   '/super-admin/organizations': typeof SuperAdminOrganizationsRoute
   '/super-admin/reports': typeof SuperAdminReportsRoute
   '/super-admin/requests': typeof SuperAdminRequestsRoute
@@ -398,7 +389,6 @@ export interface FileRouteTypes {
     | '/org-admin/simulations'
     | '/super-admin/audit'
     | '/super-admin/categories'
-    | '/super-admin/contact'
     | '/super-admin/organizations'
     | '/super-admin/reports'
     | '/super-admin/requests'
@@ -435,7 +425,6 @@ export interface FileRouteTypes {
     | '/org-admin/simulations'
     | '/super-admin/audit'
     | '/super-admin/categories'
-    | '/super-admin/contact'
     | '/super-admin/organizations'
     | '/super-admin/reports'
     | '/super-admin/requests'
@@ -476,7 +465,6 @@ export interface FileRouteTypes {
     | '/org-admin/simulations'
     | '/super-admin/audit'
     | '/super-admin/categories'
-    | '/super-admin/contact'
     | '/super-admin/organizations'
     | '/super-admin/reports'
     | '/super-admin/requests'
@@ -626,13 +614,6 @@ declare module '@tanstack/react-router' {
       path: '/organizations'
       fullPath: '/super-admin/organizations'
       preLoaderRoute: typeof SuperAdminOrganizationsRouteImport
-      parentRoute: typeof SuperAdminRoute
-    }
-    '/super-admin/contact': {
-      id: '/super-admin/contact'
-      path: '/contact'
-      fullPath: '/super-admin/contact'
-      preLoaderRoute: typeof SuperAdminContactRouteImport
       parentRoute: typeof SuperAdminRoute
     }
     '/super-admin/categories': {
@@ -853,7 +834,6 @@ const OrgAdminRouteWithChildren = OrgAdminRoute._addFileChildren(
 interface SuperAdminRouteChildren {
   SuperAdminAuditRoute: typeof SuperAdminAuditRoute
   SuperAdminCategoriesRoute: typeof SuperAdminCategoriesRoute
-  SuperAdminContactRoute: typeof SuperAdminContactRoute
   SuperAdminOrganizationsRoute: typeof SuperAdminOrganizationsRoute
   SuperAdminReportsRoute: typeof SuperAdminReportsRoute
   SuperAdminRequestsRoute: typeof SuperAdminRequestsRoute
@@ -865,7 +845,6 @@ interface SuperAdminRouteChildren {
 const SuperAdminRouteChildren: SuperAdminRouteChildren = {
   SuperAdminAuditRoute: SuperAdminAuditRoute,
   SuperAdminCategoriesRoute: SuperAdminCategoriesRoute,
-  SuperAdminContactRoute: SuperAdminContactRoute,
   SuperAdminOrganizationsRoute: SuperAdminOrganizationsRoute,
   SuperAdminReportsRoute: SuperAdminReportsRoute,
   SuperAdminRequestsRoute: SuperAdminRequestsRoute,
@@ -892,13 +871,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

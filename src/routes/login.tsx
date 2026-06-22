@@ -53,6 +53,7 @@ function LoginPage() {
       <div className="flex items-center justify-center px-4 py-12">
         <Card className="w-full max-w-md">
           <CardHeader>
+            <Button asChild variant="ghost" size="sm" className="-ml-2 mb-2 w-fit"><Link to="/">← Back to home</Link></Button>
             <CardTitle className="font-display text-2xl">Sign in</CardTitle>
             <CardDescription>Use your registered email and password.</CardDescription>
           </CardHeader>

@@ -73,7 +73,7 @@ interface DB {
   notifications: Notification[]; contact_messages: ContactMessage[];
 }
 
-const KEY = "isf_db_v1";
+const KEY = "isf_db_v3";
 
 const initial: DB = {
   users: USERS_SEED, organizations: ORG_SEED, org_requests: REQUESTS_SEED,

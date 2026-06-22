@@ -74,7 +74,7 @@ function LoginPage() {
               <label className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Checkbox checked={remember} onCheckedChange={v => setRemember(!!v)} /> Remember me
               </label>
-              <Button disabled={loading} type="submit" className="w-full">{loading ? "Signing in..." : "Login"}</Button>
+              <Button disabled={loading || !isHydrated} type="submit" className="w-full">{loading || !isHydrated ? "Signing in..." : "Login"}</Button>
             </form>
             <div className="mt-6 rounded-lg border border-dashed border-border bg-muted/40 p-3 text-xs text-muted-foreground">
               <div className="font-medium text-foreground">Demo accounts</div>

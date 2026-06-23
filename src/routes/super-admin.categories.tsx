@@ -6,6 +6,11 @@ import { PageHeader } from "@/components/portal/PortalShell";
 
 import {
   Building2,
+  HeartPulse,
+  Stethoscope,
+  Landmark,
+  ShoppingBag,
+  Headset,
   Plus,
   Download,
   ChevronDown,
@@ -15,8 +20,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Tabs,
-  TabsList,
-  TabsTrigger,
   TabsContent,
 } from "@/components/ui/tabs";
 
@@ -272,52 +275,96 @@ function CategoriesPage() {
         }
       />
 
-      <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="flex flex-wrap">
-          {categories.map((cat) => (
-            <TabsTrigger key={cat.id} value={cat.id}>
-              <Building2 className="mr-2 h-4 w-4" />
-              {cat.label} ({cat.items.length})
-            </TabsTrigger>
-          ))}
-        </TabsList>
+     <div className="flex gap-6 mt-4">
 
-        {categories.map((cat) => (
-          <TabsContent key={cat.id} value={cat.id}>
-            <div className="rounded-2xl border bg-card p-5 mt-4">
+  {/* LEFT SIDEBAR */}
+  <div className="w-[260px] shrink-0">
+    <div className="border rounded-xl bg-card p-2 space-y-2">
 
-              <div className="mb-5">
-                <Input
-                  placeholder="Search..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </div>
+      {categories.map((cat) => {
+        const Icon =
+          cat.id === "hospitals"
+            ? HeartPulse
+            : cat.id === "clinics"
+            ? Stethoscope
+            : cat.id === "banks"
+            ? Landmark
+            : cat.id === "retail"
+            ? ShoppingBag
+            : cat.id === "support"
+            ? Headset
+            : Building2;
 
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {filtered.map((item) => (
-                  <div key={item.id} className="rounded-xl border p-4">
-                    <div className="font-semibold">{item.name}</div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {item.city}, {item.state}
-                    </div>
-                    <div className="mt-2 text-xs text-emerald-600">
-                      {item.status}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {!filtered.length && (
-                <div className="py-10 text-center text-sm text-muted-foreground">
-                  No results found
-                </div>
-              )}
+        return (
+          <button
+            key={cat.id}
+            onClick={() => setTab(cat.id)}
+            className={`w-full flex items-center justify-between px-3 py-3 rounded-lg transition ${
+              tab === cat.id
+                ? "bg-primary text-primary-foreground"
+                : "hover:bg-muted"
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <Icon className="h-4 w-4" />
+              <span>{cat.label}</span>
             </div>
-          </TabsContent>
-        ))}
-      </Tabs>
 
+            <span className="text-xs">
+              {cat.items.length}
+            </span>
+          </button>
+        );
+      })}
+
+    </div>
+  </div>
+
+  {/* RIGHT CONTENT */}
+  <div className="flex-1">
+
+    <div className="rounded-2xl border bg-card p-5">
+
+      <div className="mb-5">
+        <Input
+          placeholder="Search organizations..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {filtered.map((item) => (
+          <div
+            key={item.id}
+            className="rounded-xl border p-4 hover:bg-muted/20 transition"
+          >
+            <div className="font-semibold">
+              {item.name}
+            </div>
+
+            <div className="text-xs text-muted-foreground mt-1">
+              {item.city}, {item.state}
+            </div>
+
+            <div className="mt-2 text-xs text-emerald-600">
+              {item.status}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {!filtered.length && (
+        <div className="py-10 text-center text-sm text-muted-foreground">
+          No results found
+        </div>
+      )}
+
+    </div>
+
+  </div>
+
+</div>
       {/* DIALOG */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>

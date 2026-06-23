@@ -8,6 +8,14 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -238,18 +246,29 @@ function Page() {
                       })
                     }
                   />
+<Select
+  value={form.category}
+  onValueChange={(value) =>
+    setForm({
+      ...form,
+      category: value,
+    })
+  }
+>
+  <SelectTrigger>
+    <SelectValue placeholder="Select Category" />
+  </SelectTrigger>
 
-                  <Input
-                    placeholder="Category"
-                    value={form.category}
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
-                        category: e.target.value,
-                      })
-                    }
-                  />
-
+  <SelectContent>
+    <SelectItem value="hospital">Hospital</SelectItem>
+    <SelectItem value="clinic">Clinic</SelectItem>
+    <SelectItem value="bank">Bank</SelectItem>
+    <SelectItem value="retail">Retail</SelectItem>
+    <SelectItem value="customer-care">
+      Customer Care
+    </SelectItem>
+  </SelectContent>
+</Select>
                   <Input
                     placeholder="Contact Person"
                     value={form.contact_person}
@@ -368,9 +387,16 @@ function Page() {
             <div>{o.contact_person}</div>
             <div>{o.email}</div>
 
-            <div>
-              <Badge>{o.status}</Badge>
-            </div>
+            <Badge
+  className="w-20 justify-center capitalize"
+  variant={
+    o.status === "active"
+      ? "default"
+      : "destructive"
+  }
+>
+  {o.status}
+</Badge>
 
             <div>
               <Button

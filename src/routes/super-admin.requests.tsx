@@ -1,19 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+
 import {
   Check,
   Eye,
   X,
-  ChevronLeft,
-  ChevronRight,
   Download,
   Filter,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 import { PageHeader } from "@/components/portal/PortalShell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+
 import {
   Dialog,
   DialogContent,
@@ -22,7 +24,11 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-import { db, useDb, type OrgRequest } from "@/lib/mock/db";
+import {
+  db,
+  useDb,
+  type OrgRequest,
+} from "@/lib/mock/db";
 
 export const Route = createFileRoute("/super-admin/requests")({
   component: RequestsPage,
@@ -166,20 +172,21 @@ function RequestsPage() {
       <div className="mt-3 border rounded-lg bg-card overflow-hidden">
 
         {/* HEADER */}
-        <div className="grid grid-cols-6 px-3 py-2 text-xs font-semibold text-muted-foreground border-b">
-          <div>Organization</div>
-          <div>Category</div>
-          <div>Contact</div>
-          <div>Email</div>
-          <div className="text-center">View</div>
-          <div className="text-right">Actions</div>
-        </div>
+          <div className="grid grid-cols-7 px-3 py-2 text-xs font-semibold text-muted-foreground border-b">
+  <div>Organization</div>
+  <div>Category</div>
+  <div>Contact</div>
+  <div>Email</div>
+  <div className="text-center">View</div>
+  <div className="text-center">Status</div>
+  <div className="text-right">Actions</div>
+</div>
 
         {/* ROWS */}
         {paginated.map(r => (
           <div
             key={r.id}
-            className="grid grid-cols-6 px-3 py-2 items-center border-b hover:bg-muted/20"
+            className="grid grid-cols-7 px-3 py-2 items-center border-b hover:bg-muted/20"
           >
             <div className="font-medium pr-2 truncate">{r.name}</div>
 
@@ -194,75 +201,103 @@ function RequestsPage() {
             <div className="pr-2 text-sm text-muted-foreground truncate">
               {r.email}
             </div>
+{/* VIEW */}
+<div className="flex justify-center">
+  <Dialog>
+    <DialogTrigger asChild>
+      <button className={iconBtn}>
+        <Eye className="h-4 w-4 text-muted-foreground" />
+      </button>
+    </DialogTrigger>
 
-            {/* VIEW */}
-            <div className="flex justify-center">
-              <Dialog>
-                <DialogTrigger asChild>
-                  <button className={iconBtn}>
-                    <Eye className="h-4 w-4 text-muted-foreground" />
-                  </button>
-                </DialogTrigger>
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>{r.name}</DialogTitle>
+      </DialogHeader>
 
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>{r.name}</DialogTitle>
-                  </DialogHeader>
+      <div className="grid grid-cols-2 gap-2 text-sm">
+        <Info label="Category" value={r.category} />
+        <Info label="Contact" value={r.contact_person} />
+        <Info label="Email" value={r.email} />
+        <Info label="Mobile" value={r.mobile} />
+        <Info label="City" value={r.city} />
+        <Info label="Status" value={r.status} />
+      </div>
+    </DialogContent>
+  </Dialog>
+</div>
 
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <Info label="Category" value={r.category} />
-                    <Info label="Contact" value={r.contact_person} />
-                    <Info label="Email" value={r.email} />
-                    <Info label="Mobile" value={r.mobile} />
-                    <Info label="City" value={r.city} />
-                    <Info label="Status" value={r.status} />
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </div>
+{/* STATUS */}
+<div className="flex justify-center">
+  {r.status === "approved" && (
+    <Badge
+      className="w-24 justify-center"
+      variant="default"
+    >
+      Approved
+    </Badge>
+  )}
 
-            {/* ACTIONS */}
-            <div className="flex justify-end gap-1 items-center">
+  {r.status === "rejected" && (
+    <Badge
+      className="w-24 justify-center"
+      variant="destructive"
+    >
+      Rejected
+    </Badge>
+  )}
 
-              {r.status !== "pending" ? (
-                <Badge className="text-xs px-2">
-                  {r.status}
-                </Badge>
-              ) : (
-                <>
-                  <button
-                    onClick={() => approve(r)}
-                    className={iconBtn + " text-green-600"}
-                  >
-                    <Check className="h-4 w-4" />
-                  </button>
+  {r.status === "pending" && (
+    <Badge
+      className="w-24 justify-center bg-yellow-500 text-white hover:bg-yellow-500"
+    >
+      Pending
+    </Badge>
+  )}
+</div>
 
-                  <button
-                    onClick={() => reject(r)}
-                    className={iconBtn + " text-red-600"}
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </>
-              )}
+{/* ACTIONS */}
+<div className="flex justify-end gap-1 items-center">
+  <button
+    disabled={r.status === "approved"}
+    onClick={() => approve(r)}
+    className={`${iconBtn} ${
+      r.status === "approved"
+        ? "opacity-40 cursor-not-allowed text-green-600"
+        : "text-green-600"
+    }`}
+  >
+    <Check className="h-4 w-4" />
+  </button>
 
-            </div>
+  <button
+    disabled={r.status === "rejected"}
+    onClick={() => reject(r)}
+    className={`${iconBtn} ${
+      r.status === "rejected"
+        ? "opacity-40 cursor-not-allowed text-red-600"
+        : "text-red-600"
+    }`}
+  >
+    <X className="h-4 w-4" />
+  </button>
+</div>
+
           </div>
         ))}
 
         {/* PAGINATION */}
-        <div className="flex justify-between items-center px-3 py-2 border-t text-xs">
-          <div>
-            Page {page} / {totalPages || 1}
+        <div className="flex items-center justify-between px-3 py-2 border-t">
+          <div className="text-sm text-muted-foreground">
+            Page {page} of {Math.max(totalPages, 1)}
           </div>
 
           <div className="flex gap-1">
             <Button
               size="sm"
               variant="outline"
-              className="h-8 px-2"
               disabled={page === 1}
-              onClick={() => setPage(p => p - 1)}
+              onClick={() => setPage((p) => p - 1)}
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -270,29 +305,34 @@ function RequestsPage() {
             <Button
               size="sm"
               variant="outline"
-              className="h-8 px-2"
-              disabled={page === totalPages}
-              onClick={() => setPage(p => p + 1)}
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => p + 1)}
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         </div>
-
       </div>
     </div>
   );
 }
 
-/* ---------------- INFO ---------------- */
-
-function Info({ label, value }: { label: string; value: any }) {
+function Info({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
   return (
     <div>
-      <div className="text-xs text-muted-foreground uppercase">
+      <div className="text-xs text-muted-foreground">
         {label}
       </div>
-      <div className="font-medium text-sm">{value || "-"}</div>
+
+      <div className="font-medium">
+        {value || "-"}
+      </div>
     </div>
   );
 }

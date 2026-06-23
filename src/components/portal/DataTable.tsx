@@ -1,6 +1,6 @@
 
 import { useMemo, useState, type ReactNode } from "react";
-import { ArrowUpDown, Download } from "lucide-react";
+import { ArrowUpDown, Download, Filter } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
@@ -13,13 +13,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-
 export interface Column<T> {
   key: keyof T | string;
   header: string;
@@ -28,18 +21,19 @@ export interface Column<T> {
   sortValue?: (row: T) => string | number;
 }
 
+
+
+
 export function DataTable<T extends { id: string }>({
   data,
   columns,
   rowActions,
-  filters,
   pageSize = 10,
   exportName = "export",
 }: {
   data: T[];
   columns: Column<T>[];
   rowActions?: (row: T) => ReactNode;
-  filters?: ReactNode;
   pageSize?: number;
   exportName?: string;
 }) {
@@ -47,22 +41,22 @@ export function DataTable<T extends { id: string }>({
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(1);
 
-  const filtered = useMemo(() => {
-    let rows = [...data];
+  const rows = useMemo(() => {
+    let result = [...data];
 
     if (sortKey) {
-      const col = columns.find(
+      const column = columns.find(
         (c) => String(c.key) === sortKey
       );
 
-      const get =
-        col?.sortValue ||
-        ((r: T) =>
-          String((r as any)[sortKey] ?? ""));
+      const getValue =
+        column?.sortValue ||
+        ((row: T) =>
+          String((row as any)[sortKey] ?? ""));
 
-      rows.sort((a, b) => {
-        const av = get(a);
-        const bv = get(b);
+      result.sort((a, b) => {
+        const av = getValue(a);
+        const bv = getValue(b);
 
         if (av < bv)
           return sortDir === "asc" ? -1 : 1;
@@ -74,42 +68,51 @@ export function DataTable<T extends { id: string }>({
       });
     }
 
-    return rows;
-  }, [data, sortKey, sortDir, columns]);
+    return result;
+  }, [data, columns, sortKey, sortDir]);
 
   const totalPages = Math.max(
     1,
-    Math.ceil(filtered.length / pageSize)
+    Math.ceil(rows.length / pageSize)
   );
 
-  const currentPage = Math.min(
-    page,
-    totalPages
-  );
+  const currentPage = Math.min(page, totalPages);
 
-  const paginatedRows = filtered.slice(
+  const paginatedRows = rows.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize
   );
+
+  function toggleSort(key: string) {
+    if (sortKey === key) {
+      setSortDir((prev) =>
+        prev === "asc" ? "desc" : "asc"
+      );
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  }
 
   function exportCsv() {
     const headerRow = columns.map(
       (c) => c.header
     );
 
-    const rows = [
+    const csv = [
       headerRow.join(","),
-      ...filtered.map((r) =>
+      ...rows.map((row) =>
         columns
-          .map((c) => {
+          .map((column) => {
             const value =
-              (c.sortValue
-                ? c.sortValue(r)
-                : (r as any)[c.key]) ?? "";
+              (column.sortValue
+                ? column.sortValue(row)
+                : (row as any)[column.key]) ?? "";
 
-            const escaped = String(
-              value
-            ).replace(/"/g, '""');
+            const escaped = String(value).replace(
+              /"/g,
+              '""'
+            );
 
             return /[,"\n]/.test(escaped)
               ? `"${escaped}"`
@@ -119,13 +122,15 @@ export function DataTable<T extends { id: string }>({
       ),
     ].join("\n");
 
-    const blob = new Blob([rows], {
+    const blob = new Blob([csv], {
       type: "text/csv;charset=utf-8",
     });
 
     const url = URL.createObjectURL(blob);
 
-    const a = document.createElement("a");
+    const a =
+      document.createElement("a");
+
     a.href = url;
     a.download = `${exportName}.csv`;
     a.click();
@@ -133,91 +138,32 @@ export function DataTable<T extends { id: string }>({
     URL.revokeObjectURL(url);
   }
 
-  function toggleSort(key: string) {
-    if (sortKey === key) {
-      setSortDir((d) =>
-        d === "asc" ? "desc" : "asc"
-      );
-    } else {
-      setSortKey(key);
-      setSortDir("asc");
-    }
-  }
-
   return (
-    <div className="rounded-xl border border-border bg-card shadow-sm">
-      {/* Toolbar */}
-<div className="flex items-center justify-end border-b border-border p-3">
-  <div className="flex items-center gap-2">
+    <div className="rounded-xl border bg-card shadow-sm">
 
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-9 gap-2"
-        >
-          Filter
-        </Button>
-      </DropdownMenuTrigger>
-
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem>All</DropdownMenuItem>
-        <DropdownMenuItem>Active</DropdownMenuItem>
-        <DropdownMenuItem>Inactive</DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-9 gap-2"
-        >
-          <Download className="h-4 w-4" />
-          Export
-        </Button>
-      </DropdownMenuTrigger>
-
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={exportCsv}>
-          Export CSV
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={exportCsv}>
-          Export Excel
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => window.print()}>
-          Export PDF
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-
-  </div>
-</div>
       {/* Table */}
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
-              {columns.map((c) => (
+              {columns.map((column) => (
                 <TableHead
-                  key={String(c.key)}
+                  key={String(column.key)}
                 >
-                  {c.sortable ? (
+                  {column.sortable ? (
                     <button
                       onClick={() =>
                         toggleSort(
-                          String(c.key)
+                          String(column.key)
                         )
                       }
                       className="inline-flex items-center gap-1"
                     >
-                      {c.header}
+                      {column.header}
                       <ArrowUpDown className="h-3 w-3" />
                     </button>
                   ) : (
-                    c.header
+                    column.header
                   )}
                 </TableHead>
               ))}
@@ -246,15 +192,15 @@ export function DataTable<T extends { id: string }>({
             ) : (
               paginatedRows.map((row) => (
                 <TableRow key={row.id}>
-                  {columns.map((c) => (
+                  {columns.map((column) => (
                     <TableCell
-                      key={String(c.key)}
+                      key={String(column.key)}
                     >
-                      {c.render
-                        ? c.render(row)
+                      {column.render
+                        ? column.render(row)
                         : String(
                             (row as any)[
-                              c.key
+                              column.key
                             ] ?? ""
                           )}
                     </TableCell>
@@ -273,7 +219,7 @@ export function DataTable<T extends { id: string }>({
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between border-t border-border px-3 py-2">
+      <div className="flex items-center justify-between border-t px-3 py-2">
         <div className="text-sm text-muted-foreground">
           Page {currentPage} of {totalPages}
         </div>
@@ -307,6 +253,3 @@ export function DataTable<T extends { id: string }>({
     </div>
   );
 }
-
-
-

@@ -24,14 +24,7 @@ function SettingsPage() {
             <Button className="justify-self-start" onClick={() => toast.success("Saved")}>Save</Button>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader><CardTitle>Branding</CardTitle></CardHeader>
-          <CardContent className="grid gap-3">
-            <div className="grid gap-1.5"><Label>Brand Primary Color</Label><Input defaultValue="#0F766E" /></div>
-            <div className="grid gap-1.5"><Label>Brand Secondary Color</Label><Input defaultValue="#06B6D4" /></div>
-            <Button className="justify-self-start" onClick={() => toast.success("Saved")}>Save</Button>
-          </CardContent>
-        </Card>
+        
         <Card>
           <CardHeader><CardTitle>Notifications</CardTitle></CardHeader>
           <CardContent className="grid gap-3">
@@ -40,15 +33,7 @@ function SettingsPage() {
             <Toggle label="In-app notifications" defaultChecked />
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader><CardTitle>Security</CardTitle></CardHeader>
-          <CardContent className="grid gap-3">
-            <Toggle label="Enforce two-factor authentication" />
-            <Toggle label="Idle session timeout (30 min)" defaultChecked />
-            <Toggle label="Audit-log every action" defaultChecked />
-            <Button variant="destructive" className="justify-self-start" onClick={() => { db.reset(); toast.success("Demo data restored"); }}>Reset demo data</Button>
-          </CardContent>
-        </Card>
+        
       </div>
     </div>
   );

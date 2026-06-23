@@ -1,64 +1,379 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
+
 import { PageHeader } from "@/components/portal/PortalShell";
-import { DataTable } from "@/components/portal/DataTable";
+
+import {
+  Building2,
+  Plus,
+  Download,
+  ChevronDown,
+} from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { db, uid, useDb, type Category } from "@/lib/mock/db";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/components/ui/tabs";
 
-export const Route = createFileRoute("/super-admin/categories")({ component: CategoriesPage });
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+
+export const Route = createFileRoute("/super-admin/categories")({
+  component: CategoriesPage,
+});
+
+type Item = {
+  id: string;
+  name: string;
+  city: string;
+  state: string;
+  status: string;
+};
+
+type Category = {
+  id: string;
+  label: string;
+  items: Item[];
+};
 
 function CategoriesPage() {
-  const cats = useDb(() => db.all("categories"));
+  const [tab, setTab] = useState("hospitals");
+  const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
-  const [edit, setEdit] = useState<Category | null>(null);
-  const [form, setForm] = useState({ name: "", slug: "", icon: "Tag", description: "" });
+  const [exportOpen, setExportOpen] = useState(false);
 
-  function openNew() { setEdit(null); setForm({ name: "", slug: "", icon: "Tag", description: "" }); setOpen(true); }
-  function openEdit(c: Category) { setEdit(c); setForm({ name: c.name, slug: c.slug, icon: c.icon, description: c.description }); setOpen(true); }
-  function save() {
-    if (!form.name || !form.slug) { toast.error("Name and slug are required"); return; }
-    if (edit) { db.update("categories", edit.id, form as never); toast.success("Category updated"); }
-    else { db.insert("categories", { id: uid("cat"), ...form }); toast.success("Category added"); }
+  const [form, setForm] = useState({
+    name: "",
+    city: "",
+    state: "",
+    categoryName: "",
+  });
+
+  const [categories, setCategories] = useState<Category[]>([
+    {
+      id: "hospitals",
+      label: "Hospitals",
+      items: [
+        { id: "h1", name: "Apollo Hospitals", city: "Chennai", state: "TN", status: "Active" },
+      ],
+    },
+    {
+      id: "clinics",
+      label: "Clinics",
+      items: [
+        { id: "c1", name: "Care Clinic", city: "Hyderabad", state: "TG", status: "Active" },
+      ],
+    },
+    {
+      id: "banks",
+      label: "Banks",
+      items: [
+        { id: "b1", name: "State Bank of India", city: "Mumbai", state: "MH", status: "Active" },
+      ],
+    },
+    {
+      id: "retail",
+      label: "Retail",
+      items: [
+        { id: "r1", name: "Reliance Retail", city: "Mumbai", state: "MH", status: "Active" },
+      ],
+    },
+    {
+      id: "support",
+      label: "Customer Support",
+      items: [
+        { id: "s1", name: "Customer Care Center", city: "Bengaluru", state: "KA", status: "Active" },
+      ],
+    },
+  ]);
+
+  const activeCategory = useMemo(
+    () => categories.find((c) => c.id === tab),
+    [categories, tab]
+  );
+
+  const filtered = useMemo(() => {
+    return (activeCategory?.items || []).filter((x) =>
+      `${x.name} ${x.city} ${x.state}`
+        .toLowerCase()
+        .includes(search.toLowerCase())
+    );
+  }, [activeCategory, search]);
+
+  function addCategoryItem() {
+    if (!form.name || !form.city) {
+      toast.error("Name and city required");
+      return;
+    }
+
+    const newItem: Item = {
+      id: Date.now().toString(),
+      name: form.name,
+      city: form.city,
+      state: form.state,
+      status: "Active",
+    };
+
+    setCategories((prev) =>
+      prev.map((cat) =>
+        cat.id === tab
+          ? { ...cat, items: [newItem, ...cat.items] }
+          : cat
+      )
+    );
+
+    toast.success("Added successfully");
+
+    setForm({ name: "", city: "", state: "", categoryName: "" });
     setOpen(false);
   }
 
+  function addNewCategory() {
+    if (!form.categoryName) {
+      toast.error("Category name required");
+      return;
+    }
+
+    const id = form.categoryName.toLowerCase().replace(/\s+/g, "-");
+
+    if (categories.find((c) => c.id === id)) {
+      toast.error("Category already exists");
+      return;
+    }
+
+    const newCat: Category = {
+      id,
+      label: form.categoryName,
+      items: [],
+    };
+
+    setCategories((prev) => [...prev, newCat]);
+    setTab(id);
+
+    toast.success("Category added");
+
+    setForm({ name: "", city: "", state: "", categoryName: "" });
+    setOpen(false);
+  }
+
+  function downloadFile(content: string, fileName: string, type: string) {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    a.click();
+  }
+
+  function exportData(type: "csv" | "xls" | "pdf") {
+    if (!filtered.length) {
+      toast.error("No data to export");
+      return;
+    }
+
+    if (type === "csv") {
+      const csv =
+        "Name,City,State,Status\n" +
+        filtered.map((d) => `${d.name},${d.city},${d.state},${d.status}`).join("\n");
+
+      downloadFile(csv, "data.csv", "text/csv");
+    }
+
+    if (type === "xls") {
+      const csv =
+        "Name\tCity\tState\tStatus\n" +
+        filtered.map((d) => `${d.name}\t${d.city}\t${d.state}\t${d.status}`).join("\n");
+
+      downloadFile(csv, "data.xls", "application/vnd.ms-excel");
+    }
+
+    if (type === "pdf") {
+      const content = filtered
+        .map((d) => `${d.name} | ${d.city} | ${d.state} | ${d.status}`)
+        .join("\n");
+
+      downloadFile(content, "data.pdf", "application/pdf");
+    }
+
+    toast.success(`Exported ${type.toUpperCase()}`);
+  }
+
   return (
-    <div>
-      <PageHeader title="Categories" subtitle="Approved business categories supported by the platform."
-        actions={<Button onClick={openNew}><Plus className="mr-1 h-4 w-4" /> Add category</Button>} />
-      <DataTable
-        data={cats}
-        exportName="categories"
-        columns={[
-          { key: "name", header: "Name", sortable: true },
-          { key: "slug", header: "Slug" },
-          { key: "description", header: "Description" },
-        ]}
-        rowActions={(r) => (
-          <div className="flex justify-end gap-1">
-            <Button size="icon" variant="ghost" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button>
-            <Button size="icon" variant="ghost" onClick={() => { db.remove("categories", r.id); toast.success("Deleted"); }}><Trash2 className="h-4 w-4" /></Button>
+    <>
+      <PageHeader
+        title="Organization Categories"
+        subtitle="Manage dynamic categories"
+        actions={
+          <div className="flex gap-2 relative">
+
+            {/* EXPORT DROPDOWN */}
+            <div className="relative">
+              <Button
+                variant="outline"
+                onClick={() => setExportOpen((p) => !p)}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Export
+                <ChevronDown className="ml-2 h-4 w-4" />
+              </Button>
+
+              {exportOpen && (
+                <div className="absolute right-0 mt-2 w-36 rounded-lg border bg-white shadow-md z-50">
+                  <button
+                    className="w-full px-3 py-2 text-left hover:bg-gray-100 text-sm"
+                    onClick={() => {
+                      exportData("csv");
+                      setExportOpen(false);
+                    }}
+                  >
+                    CSV
+                  </button>
+
+                  <button
+                    className="w-full px-3 py-2 text-left hover:bg-gray-100 text-sm"
+                    onClick={() => {
+                      exportData("xls");
+                      setExportOpen(false);
+                    }}
+                  >
+                    XLS
+                  </button>
+
+                  <button
+                    className="w-full px-3 py-2 text-left hover:bg-gray-100 text-sm"
+                    onClick={() => {
+                      exportData("pdf");
+                      setExportOpen(false);
+                    }}
+                  >
+                    PDF
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* NEW CATEGORY */}
+            <Button onClick={() => setOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              New Category
+            </Button>
           </div>
-        )}
+        }
       />
+
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList className="flex flex-wrap">
+          {categories.map((cat) => (
+            <TabsTrigger key={cat.id} value={cat.id}>
+              <Building2 className="mr-2 h-4 w-4" />
+              {cat.label} ({cat.items.length})
+            </TabsTrigger>
+          ))}
+        </TabsList>
+
+        {categories.map((cat) => (
+          <TabsContent key={cat.id} value={cat.id}>
+            <div className="rounded-2xl border bg-card p-5 mt-4">
+
+              <div className="mb-5">
+                <Input
+                  placeholder="Search..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {filtered.map((item) => (
+                  <div key={item.id} className="rounded-xl border p-4">
+                    <div className="font-semibold">{item.name}</div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {item.city}, {item.state}
+                    </div>
+                    <div className="mt-2 text-xs text-emerald-600">
+                      {item.status}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {!filtered.length && (
+                <div className="py-10 text-center text-sm text-muted-foreground">
+                  No results found
+                </div>
+              )}
+            </div>
+          </TabsContent>
+        ))}
+      </Tabs>
+
+      {/* DIALOG */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>{edit ? "Edit category" : "New category"}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Add Category / Organization</DialogTitle>
+          </DialogHeader>
+
           <div className="grid gap-3">
-            <div className="grid gap-1.5"><Label>Name</Label><Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
-            <div className="grid gap-1.5"><Label>Slug</Label><Input value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value })} /></div>
-            <div className="grid gap-1.5"><Label>Icon (Lucide name)</Label><Input value={form.icon} onChange={e => setForm({ ...form, icon: e.target.value })} /></div>
-            <div className="grid gap-1.5"><Label>Description</Label><Textarea rows={3} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
+            <Input
+              placeholder="Category Name (optional if adding org)"
+              value={form.categoryName}
+              onChange={(e) =>
+                setForm({ ...form, categoryName: e.target.value })
+              }
+            />
+
+            <Input
+              placeholder="Organization Name"
+              value={form.name}
+              onChange={(e) =>
+                setForm({ ...form, name: e.target.value })
+              }
+            />
+
+            <Input
+              placeholder="City"
+              value={form.city}
+              onChange={(e) =>
+                setForm({ ...form, city: e.target.value })
+              }
+            />
+
+            <Input
+              placeholder="State"
+              value={form.state}
+              onChange={(e) =>
+                setForm({ ...form, state: e.target.value })
+              }
+            />
           </div>
-          <DialogFooter><Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button><Button onClick={save}>Save</Button></DialogFooter>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+
+            <Button
+              onClick={() =>
+                form.categoryName ? addNewCategory() : addCategoryItem()
+              }
+            >
+              Save
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }

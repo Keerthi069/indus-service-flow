@@ -16,16 +16,19 @@ function OrgReportsPage() {
   const { user } = useAuth(); const orgId = user!.organization_id!;
   const apts = useDb(() => db.all("appointments").filter(a => a.organization_id === orgId));
   const [range, setRange] = useState("monthly");
+
   const data = Array.from({ length: range === "daily" ? 7 : range === "weekly" ? 8 : 12 }).map((_, i) => ({
     label: `${range[0].toUpperCase()}${i + 1}`,
     appointments: 10 + Math.floor(Math.random() * 80),
     completed: 8 + Math.floor(Math.random() * 70),
   }));
+
   function exportCsv() {
     const rows = ["label,appointments,completed", ...data.map(d => `${d.label},${d.appointments},${d.completed}`)].join("\n");
     const url = URL.createObjectURL(new Blob([rows], { type: "text/csv" }));
     const a = document.createElement("a"); a.href = url; a.download = `org-report-${range}.csv`; a.click(); URL.revokeObjectURL(url);
   }
+
   return (
     <div>
       <PageHeader title="Reports" subtitle="Operational reports for your organization."

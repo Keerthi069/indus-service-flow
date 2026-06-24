@@ -1,7 +1,6 @@
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-
 import { Waves } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -76,13 +75,16 @@ function LoginPage() {
               </label>
               <Button disabled={loading || !isHydrated} type="submit" className="w-full">{loading || !isHydrated ? "Signing in..." : "Login"}</Button>
             </form>
-            <div className="mt-6 rounded-lg border border-dashed border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+            <div className="mt-4 text-center text-sm text-muted-foreground">
+              Don't have an account?{" "}
+              <Link to="/register-organization" className="font-semibold text-primary hover:underline">Register Organization</Link>
+            </div>
+            <div className="mt-4 rounded-lg border border-dashed border-border bg-muted/40 p-3 text-xs text-muted-foreground">
               <div className="font-medium text-foreground">Demo accounts</div>
               <div className="mt-1 grid gap-0.5">
                 <div>Super Admin · <code>superadmin@indusflow.in</code> / <code>Super@123</code></div>
                 <div>Org Admin · <code>admin@apollochennai.in</code> / <code>Org@1234</code></div>
                 <div>Employee · <code>aishwarya@apollochennai.in</code> / <code>Emp@1234</code></div>
-                <div>Customer · <code>ananya.sharma@gmail.com</code> / <code>Cust@1234</code></div>
               </div>
             </div>
           </CardContent>

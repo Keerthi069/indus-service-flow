@@ -61,6 +61,6 @@ export function rolePortalPath(role: Role): string {
     case "super_admin": return "/super-admin";
     case "org_admin": return "/org-admin";
     case "employee": return "/employee";
-    case "customer": return "/customer";
+    case "customer": return "/book-appointment";
   }
 }

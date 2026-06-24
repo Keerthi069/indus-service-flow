@@ -103,7 +103,7 @@ function BookAppointment() {
             <span className="grid h-9 w-9 place-items-center rounded-lg bg-primary text-primary-foreground"><Waves className="h-5 w-5" /></span>
             Indus Service Flow
           </Link>
-          <Button asChild variant="ghost" size="sm"><Link to="/login">Login</Link></Button>
+          <Button asChild variant="ghost" size="sm"><Link to="/login" search={{ redirect: undefined }}>Login</Link></Button>
         </div>
       </div>
       <div className="mx-auto max-w-4xl px-4 py-8">

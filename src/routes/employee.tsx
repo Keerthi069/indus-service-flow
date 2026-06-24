@@ -10,5 +10,5 @@ const items: NavItem[] = [
 ];
 
 export const Route = createFileRoute("/employee")({
-  component: () => <PortalShell role="employee" requireRole="employee" brand="Employee Portal" items={items} />,
+  component: () => <PortalShell role="employee" requireRole="employee" brand="EMPLOYEE" items={items} />,
 });

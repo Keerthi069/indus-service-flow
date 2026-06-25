@@ -134,23 +134,6 @@ function RegisterOrganization() {
     className="h-10"
   />
 </Field>
-
-            <Field label="Password">
-              <Input
-                type="password"
-                className="h-10"
-                required
-              />
-            </Field>
-
-            <Field label="Confirm Password">
-              <Input
-                type="password"
-                className="h-10"
-                required
-              />
-            </Field>
-
             <div className="md:col-span-2 pt-2">
               <Button
                 type="submit"

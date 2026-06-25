@@ -2,7 +2,7 @@
 import { CATEGORIES, ORG_SEED, EMPLOYEES_SEED, CUSTOMERS_SEED, SERVICES_SEED, APPOINTMENTS_SEED, FEEDBACK_SEED, AUDIT_SEED, REQUESTS_SEED, NOTIFICATIONS_SEED, CONTACT_SEED, USERS_SEED } from "./seed";
 
 export type ID = string;
-export type Role = "super_admin" | "org_admin" | "employee" | "customer";
+export type Role = "super_admin" | "org_admin" | "employee" ;
 export type OrgStatus = "pending" | "approved" | "rejected" | "active" | "inactive";
 export type AppointmentStatus = "confirmed" | "in_progress" | "completed" | "cancelled" | "rescheduled";
 export type QueueStatus = "waiting" | "serving" | "done" | "skipped";
@@ -164,4 +164,6 @@ export function useHydrated() {
   const [h, setH] = useState(false);
   useEffect(() => setH(true), []);
   return h;
+
+  
 }

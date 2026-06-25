@@ -101,9 +101,14 @@ export function PortalShell({ role, brand, items, requireRole }: { role: Role; b
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel className="grid"><span>{user.name}</span><span className="text-xs font-normal text-muted-foreground">{user.email}</span></DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem><UserIcon className="mr-2 h-4 w-4" /> Profile</DropdownMenuItem>
-                <DropdownMenuItem><Settings className="mr-2 h-4 w-4" /> Settings</DropdownMenuItem>
-                <DropdownMenuSeparator />
+                {user.role !== "employee" && (
+                  <>
+                    <DropdownMenuItem><UserIcon className="mr-2 h-4 w-4" /> Profile</DropdownMenuItem>
+                    <DropdownMenuItem><Settings className="mr-2 h-4 w-4" /> Settings</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
+                {user.role === "employee" && <DropdownMenuSeparator />}
                 <DropdownMenuItem onClick={() => { logout(); nav({ to: "/" }); }}><LogOut className="mr-2 h-4 w-4" /> Logout</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

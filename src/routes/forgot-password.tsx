@@ -43,7 +43,7 @@ function ForgotPassword() {
     const u = db.all("users").find(x => x.email.toLowerCase() === email.toLowerCase());
     if (u) db.update("users", u.id, { password: pwd } as never);
     toast.success("Password reset. Please sign in.");
-    nav({ to: "/login" });
+    nav({ to: "/login", search: { redirect: undefined } });
   }
 
   return (
@@ -77,7 +77,7 @@ function ForgotPassword() {
               <Button type="submit">Reset password</Button>
             </form>
           )}
-          <div className="mt-4 text-center text-xs text-muted-foreground"><Link to="/login" className="hover:text-foreground">Back to login</Link></div>
+          <div className="mt-4 text-center text-xs text-muted-foreground"><Link to="/login" search={{ redirect: undefined }} className="hover:text-foreground">Back to login</Link></div>
         </CardContent>
       </Card>
     </div>

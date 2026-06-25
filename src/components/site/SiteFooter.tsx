@@ -1,44 +1,78 @@
 import { Link } from "@tanstack/react-router";
 import logoMark from "@/assets/logo-mark.png";
+import orchaspLogo from "@/assets/orchasp image.png";
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-border/60 bg-card">
-      <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 md:grid-cols-4 lg:px-8">
-        <div>
-          <div className="flex items-center gap-2 font-display font-bold">
-            <img src={logoMark} alt="" className="h-8 w-8 object-contain" width={32} height={32} />
-            Indus Service Flow
+    <footer className="bg-[#1a3a6b] text-white">
+      <div className="mx-auto max-w-7xl px-4 py-12 lg:px-8">
+        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
+          {/* Col 1: Brand + Powered by + Tagline + Buttons */}
+          <div className="lg:col-span-2">
+            {/* Logos row */}
+            <div className="flex items-center gap-4">
+              <div className="flex flex-col items-center gap-1">
+                <img src={logoMark} alt="Indus Service Flow" className="h-14 w-14 object-contain" />
+                <span className="text-[11px] font-semibold text-blue-200 leading-tight text-center">Indusayush</span>
+              </div>
+              <span className="text-base font-semibold text-blue-200 whitespace-nowrap">Powered by</span>
+              <div className="flex flex-col items-center gap-1">
+                <img src={orchaspLogo} alt="ORCHASP" className="h-14 w-14 object-contain" />
+                <span className="text-[11px] font-semibold text-blue-200 leading-tight text-center">ORCHASP</span>
+              </div>
+            </div>
+
+            {/* Tagline */}
+            <p className="mt-5 text-sm text-blue-100 max-w-xs leading-relaxed">
+              Assisting families stay organized, informed, and prepared.
+            </p>
+
+            {/* CTA Buttons */}
+            <div className="mt-6 flex gap-3">
+              <Link
+                to="/login"
+                search={{ redirect: undefined }}
+                className="rounded-md bg-blue-500 hover:bg-blue-400 px-6 py-2 text-sm font-semibold text-white transition-colors"
+              >
+                Log In
+              </Link>
+              <Link
+                to="/register-organization"
+                className="rounded-md border border-white/60 hover:border-white px-6 py-2 text-sm font-semibold text-white transition-colors"
+              >
+                Sign Up
+              </Link>
+            </div>
           </div>
-          <p className="mt-3 text-sm text-muted-foreground">Smart appointment and queue management for service-led businesses across India.</p>
+
+          {/* Col 3: Platform */}
+          <div>
+            <h4 className="text-sm font-semibold text-white">Platform</h4>
+            <ul className="mt-3 space-y-2 text-sm text-blue-200">
+              <li><a href="#features" className="hover:text-white transition-colors">Features</a></li>
+              <li><a href="#how" className="hover:text-white transition-colors">How It Works</a></li>
+              <li><a href="#security" className="hover:text-white transition-colors">Security</a></li>
+            </ul>
+          </div>
+
+          {/* Col 4: Contact */}
+          <div>
+            <h4 className="text-sm font-semibold text-white">Contact</h4>
+            <ul className="mt-3 space-y-2 text-sm text-blue-200">
+              <li>hello@indusflow.in</li>
+              <li>+91 80 4711 2200</li>
+              <li>Bengaluru · Mumbai · Delhi</li>
+            </ul>
+          </div>
         </div>
-        <div>
-          <h4 className="text-sm font-semibold">Platform</h4>
-          <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-            <li><a href="#features" className="hover:text-foreground">Features</a></li>
-            <li><a href="#how" className="hover:text-foreground">How It Works</a></li>
-            <li><a href="#security" className="hover:text-foreground">Security</a></li>
-          </ul>
+
+        {/* Bottom bar */}
+        <div className="mt-10 border-t border-white/20 pt-4 text-center text-xs text-blue-300">
+          © {new Date().getFullYear()} Indus Service Flow. Powered by{" "}
+          <a href="https://orchasp.com" target="_blank" rel="noopener noreferrer" className="font-semibold hover:text-white transition-colors">
+            Orchasp
+          </a>.
         </div>
-        <div>
-          <h4 className="text-sm font-semibold">Get Started</h4>
-          <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-            <li><Link to="/book-appointment" className="hover:text-foreground">Book Appointment</Link></li>
-            <li><Link to="/register-organization" className="hover:text-foreground">Register Organization</Link></li>
-            <li><Link to="/login" className="hover:text-foreground">Login</Link></li>
-          </ul>
-        </div>
-        <div>
-          <h4 className="text-sm font-semibold">Contact</h4>
-          <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-            <li>hello@indusflow.in</li>
-            <li>+91 80 4711 2200</li>
-            <li>Bengaluru · Mumbai · Delhi</li>
-          </ul>
-        </div>
-      </div>
-      <div className="border-t border-border/60 py-4 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} Indus Service Flow. Built for Indian service businesses.
       </div>
     </footer>
   );

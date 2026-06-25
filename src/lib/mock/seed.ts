@@ -129,8 +129,20 @@ export const SERVICES_SEED: Service[] = (() => {
   return out;
 })();
 
+// Today's queue patients for org_1 (Apollo Hospitals Chennai) — employee demo
+const TODAY_PATIENTS: Appointment[] = [
+  { id: "apt_today_1", token: "T-#1", appointment_no: "ISF-200001", organization_id: "org_1", customer_id: "cust_1", customer_name: "Aarav Patel",    customer_mobile: "+91 98001 11111", customer_email: "aarav.patel@gmail.com",    service_id: "svc_1", service_name: "General Consultation", employee_id: "emp_1", employee_name: "Aishwarya Menon", date: daysFromNow(0), time: "09:00", status: "in_progress", notes: "", created_at: daysAgo(0), updated_at: daysAgo(0) },
+  { id: "apt_today_2", token: "T-#2", appointment_no: "ISF-200002", organization_id: "org_1", customer_id: "cust_2", customer_name: "Ishita Roy",      customer_mobile: "+91 98001 22222", customer_email: "ishita.roy@gmail.com",      service_id: "svc_1", service_name: "General Consultation", employee_id: "emp_1", employee_name: "Aishwarya Menon", date: daysFromNow(0), time: "09:20", status: "confirmed",   notes: "", created_at: daysAgo(0), updated_at: daysAgo(0) },
+  { id: "apt_today_3", token: "T-#3", appointment_no: "ISF-200003", organization_id: "org_1", customer_id: "cust_3", customer_name: "Sneha Das",       customer_mobile: "+91 98001 33333", customer_email: "sneha.das@gmail.com",       service_id: "svc_2", service_name: "Cardiology Consult",  employee_id: "emp_1", employee_name: "Aishwarya Menon", date: daysFromNow(0), time: "09:40", status: "confirmed",   notes: "", created_at: daysAgo(0), updated_at: daysAgo(0) },
+  { id: "apt_today_4", token: "T-#4", appointment_no: "ISF-200004", organization_id: "org_1", customer_id: "cust_4", customer_name: "Ananya Pillai",   customer_mobile: "+91 98001 44444", customer_email: "ananya.pillai@gmail.com",   service_id: "svc_1", service_name: "General Consultation", employee_id: "emp_1", employee_name: "Aishwarya Menon", date: daysFromNow(0), time: "10:00", status: "confirmed",   notes: "", created_at: daysAgo(0), updated_at: daysAgo(0) },
+  { id: "apt_today_5", token: "T-#5", appointment_no: "ISF-200005", organization_id: "org_1", customer_id: "cust_5", customer_name: "Rahul Mehta",     customer_mobile: "+91 98001 55555", customer_email: "rahul.mehta@gmail.com",     service_id: "svc_3", service_name: "Diagnostic Imaging",  employee_id: "emp_1", employee_name: "Aishwarya Menon", date: daysFromNow(0), time: "10:20", status: "confirmed",   notes: "", created_at: daysAgo(0), updated_at: daysAgo(0) },
+  { id: "apt_today_6", token: "T-#6", appointment_no: "ISF-200006", organization_id: "org_1", customer_id: "cust_6", customer_name: "Priya Sharma",    customer_mobile: "+91 98001 66666", customer_email: "priya.sharma@gmail.com",    service_id: "svc_1", service_name: "General Consultation", employee_id: "emp_1", employee_name: "Aishwarya Menon", date: daysFromNow(0), time: "10:40", status: "confirmed",   notes: "", created_at: daysAgo(0), updated_at: daysAgo(0) },
+  { id: "apt_today_7", token: "T-#7", appointment_no: "ISF-200007", organization_id: "org_1", customer_id: "cust_7", customer_name: "Vikram Nair",     customer_mobile: "+91 98001 77777", customer_email: "vikram.nair@gmail.com",     service_id: "svc_4", service_name: "Lab Test Collection",  employee_id: "emp_1", employee_name: "Aishwarya Menon", date: daysFromNow(0), time: "11:00", status: "confirmed",   notes: "", created_at: daysAgo(0), updated_at: daysAgo(0) },
+  { id: "apt_today_8", token: "T-#8", appointment_no: "ISF-200008", organization_id: "org_1", customer_id: "cust_8", customer_name: "Kavya Reddy",     customer_mobile: "+91 98001 88888", customer_email: "kavya.reddy@gmail.com",     service_id: "svc_2", service_name: "Cardiology Consult",  employee_id: "emp_1", employee_name: "Aishwarya Menon", date: daysFromNow(0), time: "11:20", status: "completed",   notes: "", created_at: daysAgo(0), updated_at: daysAgo(0) },
+];
+
 export const APPOINTMENTS_SEED: Appointment[] = (() => {
-  const out: Appointment[] = [];
+  const out: Appointment[] = [...TODAY_PATIENTS];
   const statuses: Appointment["status"][] = ["confirmed", "in_progress", "completed", "completed", "completed", "cancelled", "rescheduled"];
   for (let i = 0; i < 100; i++) {
     const org = ORG_SEED[i % ORG_SEED.length];

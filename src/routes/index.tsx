@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ArrowRight, Hospital, Stethoscope, Landmark, Store, Headphones, CalendarCheck, Users, BarChart3, Bot, Bell, MessageSquareHeart, ShieldCheck, KeyRound, ScrollText, Lock, Activity, FileLock2, Building2, UserCog, Briefcase, User, Check } from "lucide-react";
+import { Hospital, Stethoscope, Landmark, Store, Headphones, CalendarCheck, Users, BarChart3, Bot, Bell, MessageSquareHeart, ShieldCheck, KeyRound, ScrollText, Lock, Activity, FileLock2, Building2, UserCog, Briefcase, User, Check } from "lucide-react";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Button } from "@/components/ui/button";
@@ -59,7 +59,6 @@ const portals = [
   { icon: ShieldCheck, key: "super_admin", title: "Super Admin Portal", desc: "Govern the entire platform, organizations and tenants.", points: ["Approve / reject organization requests", "Manage categories, users and audit logs", "Platform-wide reports and revenue insights"] },
   { icon: Building2, key: "org_admin", title: "Organization Admin Portal", desc: "Run a single organization end-to-end.", points: ["Services, employees, customers, appointments", "Live queue, simulations and analytics", "AI recommendations and exports"] },
   { icon: UserCog, key: "employee", title: "Employee Portal", desc: "Focused workflow for the people serving customers.", points: ["Personal queue and schedule", "Start, pause, resume and complete service", "Performance and rating trends"] },
-  { icon: User, key: "customer", title: "Customer Portal", desc: "Self-service for end customers.", points: ["Book and reschedule appointments", "Live queue position and wait time", "Submit feedback after service"] },
 ];
 
 const categoryCards = [
@@ -108,11 +107,7 @@ function Hero() {
           <p className="mt-5 max-w-xl text-base text-muted-foreground md:text-lg">
             Reduce waiting time, improve customer experience, optimize service operations and manage appointments across Hospitals, Clinics, Banks, Retail Stores and Customer Support Centers.
           </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Button asChild size="lg"><Link to="/book-appointment">Book Appointment <ArrowRight className="ml-1 h-4 w-4" /></Link></Button>
-            <Button asChild size="lg" variant="outline"><Link to="/login">Login</Link></Button>
-            <Button asChild size="lg" variant="ghost"><Link to="/register-organization">Register Organization</Link></Button>
-          </div>
+
           <div className="mt-10 grid grid-cols-2 gap-4 md:grid-cols-4">
             {stats.map(s => (
               <div key={s.label} className="rounded-xl border border-border/60 bg-card/70 p-4 backdrop-blur">
@@ -245,8 +240,8 @@ function Security() {
 
 function Portals() {
   return (
-    <Section id="portals" eyebrow="Portals" title="Four purpose-built experiences">
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+    <Section id="portals" eyebrow="Portals" title="Three purpose-built experiences">
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {portals.map(p => (
           <Dialog key={p.key}>
             <DialogTrigger asChild>
@@ -272,7 +267,7 @@ function Portals() {
                 ))}
               </ul>
               <div className="mt-4 flex gap-2">
-                <Button asChild><Link to="/login">Login to portal</Link></Button>
+                <Button asChild><Link to="/login" search={{ redirect: undefined }}>Login to portal</Link></Button>
                 {p.key === "org_admin" && <Button asChild variant="outline"><Link to="/register-organization">Register Organization</Link></Button>}
                 {p.key === "customer" && <Button asChild variant="outline"><Link to="/book-appointment">Book Appointment</Link></Button>}
               </div>

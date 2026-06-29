@@ -20,6 +20,8 @@ export const Route = createFileRoute("/super-admin/profile")({
   component: SuperAdminProfilePage,
 });
 
+const MAX_FILE_SIZE_MB = 5;
+
 const ADMIN = {
   name: "Arjun Mehta",
   email: "arjun.mehta@platform.io",
@@ -34,8 +36,6 @@ const ADMIN = {
   org: "Platform.io",
 };
 
-const MAX_FILE_SIZE_MB = 5;
-
 function SuperAdminProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [profileImage, setProfileImage] = useState("");
@@ -43,7 +43,7 @@ function SuperAdminProfilePage() {
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    // Reset the input value so selecting the same file again still fires onChange
+    // Reset the input so re-selecting the same file still fires onChange
     event.target.value = "";
 
     if (!file) return;
@@ -68,6 +68,15 @@ function SuperAdminProfilePage() {
     reader.readAsDataURL(file);
   };
 
+  const initial =
+    ADMIN.name
+      ?.replace(/^dr\.??\s*/i, "")
+      ?.trim()
+      ?.charAt(0)
+      ?.toUpperCase() || "U";
+
+  const displayName = ADMIN.name.replace(/^dr\.??\s*/i, "");
+
   return (
     <div className="space-y-6">
       {/* Profile Header */}
@@ -78,12 +87,12 @@ function SuperAdminProfilePage() {
               {profileImage ? (
                 <img
                   src={profileImage}
-                  alt={ADMIN.name}
+                  alt={displayName}
                   className="h-28 w-28 rounded-full border object-cover"
                 />
               ) : (
                 <div className="grid h-28 w-28 place-items-center rounded-full border bg-primary/10 text-4xl font-bold text-primary">
-                  {ADMIN.avatarInitials}
+                  {initial}
                 </div>
               )}
 
@@ -107,13 +116,15 @@ function SuperAdminProfilePage() {
             </div>
 
             <div className="flex-1">
-              <h1 className="text-3xl font-bold">{ADMIN.name}</h1>
-              <p className="mt-1 text-muted-foreground">{ADMIN.role}</p>
+              <h1 className="text-3xl font-bold">{displayName}</h1>
+              <p className="mt-1 text-muted-foreground">Super Admin</p>
+
               <div className="mt-3 flex flex-wrap gap-2">
-                <Badge>{ADMIN.adminId}</Badge>
+                <Badge>ADM-0001</Badge>
                 <Badge variant="secondary">Active</Badge>
-                <Badge variant="outline">{ADMIN.org}</Badge>
+                <Badge variant="outline">Platform.io</Badge>
               </div>
+
               {uploadError && (
                 <p className="mt-2 text-sm text-destructive">{uploadError}</p>
               )}
@@ -132,7 +143,7 @@ function SuperAdminProfilePage() {
               <Shield className="h-4 w-4 text-muted-foreground" />
               <div>
                 <div className="text-sm text-muted-foreground">Role</div>
-                <div>{ADMIN.role}</div>
+                <div>Super Admin</div>
               </div>
             </div>
 
@@ -140,7 +151,7 @@ function SuperAdminProfilePage() {
               <Building2 className="h-4 w-4 text-muted-foreground" />
               <div>
                 <div className="text-sm text-muted-foreground">Department</div>
-                <div>{ADMIN.department}</div>
+                <div>Platform Operations</div>
               </div>
             </div>
 
@@ -148,7 +159,7 @@ function SuperAdminProfilePage() {
               <Clock className="h-4 w-4 text-muted-foreground" />
               <div>
                 <div className="text-sm text-muted-foreground">Timezone</div>
-                <div>{ADMIN.timezone}</div>
+                <div>Asia/Kolkata (IST, UTC+5:30)</div>
               </div>
             </div>
 
@@ -156,7 +167,7 @@ function SuperAdminProfilePage() {
               <Calendar className="h-4 w-4 text-muted-foreground" />
               <div>
                 <div className="text-sm text-muted-foreground">Member since</div>
-                <div>{ADMIN.joined}</div>
+                <div>12 January 2023</div>
               </div>
             </div>
           </CardContent>
@@ -178,7 +189,7 @@ function SuperAdminProfilePage() {
               <Phone className="h-4 w-4 text-muted-foreground" />
               <div>
                 <div className="text-sm text-muted-foreground">Phone</div>
-                <div>{ADMIN.phone}</div>
+                <div>+91 98765 43210</div>
               </div>
             </div>
 
@@ -186,7 +197,7 @@ function SuperAdminProfilePage() {
               <User className="h-4 w-4 text-muted-foreground" />
               <div>
                 <div className="text-sm text-muted-foreground">Admin ID</div>
-                <div>{ADMIN.adminId}</div>
+                <div>ADM-0001</div>
               </div>
             </div>
 
@@ -194,7 +205,7 @@ function SuperAdminProfilePage() {
               <Laptop className="h-4 w-4 text-muted-foreground" />
               <div>
                 <div className="text-sm text-muted-foreground">Last login</div>
-                <div>{ADMIN.lastLogin}</div>
+                <div>Today at 09:41 AM · Chrome, macOS</div>
               </div>
             </div>
           </CardContent>

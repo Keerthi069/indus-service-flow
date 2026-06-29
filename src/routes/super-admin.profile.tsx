@@ -15,7 +15,6 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { PageHeader } from "@/components/portal/PortalShell";
 
 export const Route = createFileRoute("/super-admin/profile")({
   component: SuperAdminProfilePage,
@@ -35,13 +34,31 @@ const ADMIN = {
   org: "Platform.io",
 };
 
+const MAX_FILE_SIZE_MB = 5;
+
 function SuperAdminProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [profileImage, setProfileImage] = useState("");
+  const [uploadError, setUploadError] = useState("");
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
+    // Reset the input value so selecting the same file again still fires onChange
+    event.target.value = "";
+
     if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setUploadError("Please upload an image file.");
+      return;
+    }
+
+    if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+      setUploadError(`Image must be smaller than ${MAX_FILE_SIZE_MB}MB.`);
+      return;
+    }
+
+    setUploadError("");
     const reader = new FileReader();
     reader.onloadend = () => {
       if (typeof reader.result === "string") {
@@ -52,7 +69,7 @@ function SuperAdminProfilePage() {
   };
 
   return (
-    <div className="space-y-6"> 
+    <div className="space-y-6">
       {/* Profile Header */}
       <Card>
         <CardContent className="p-6">
@@ -75,6 +92,7 @@ function SuperAdminProfilePage() {
                 variant="secondary"
                 className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full"
                 onClick={() => fileInputRef.current?.click()}
+                type="button"
               >
                 <Upload className="h-4 w-4" />
               </Button>
@@ -96,6 +114,9 @@ function SuperAdminProfilePage() {
                 <Badge variant="secondary">Active</Badge>
                 <Badge variant="outline">{ADMIN.org}</Badge>
               </div>
+              {uploadError && (
+                <p className="mt-2 text-sm text-destructive">{uploadError}</p>
+              )}
             </div>
           </div>
         </CardContent>

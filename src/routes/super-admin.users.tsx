@@ -1,17 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import {
-  Power,
-  Trash2,
-  Filter,
-  Download,
-} from "lucide-react";
+import { Filter, Download } from "lucide-react";
 
 import { PageHeader } from "@/components/portal/PortalShell";
-import { DataTable } from "@/components/portal/DataTable";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 
 import {
   DropdownMenu,
@@ -29,19 +22,17 @@ export const Route = createFileRoute(
 });
 
 function UsersPage() {
-  const [statusFilter, setStatusFilter] =
-    useState<
-      "all" | "active" | "disabled"
-    >("all");
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "active" | "disabled"
+  >("all");
 
   const users = useDb(() =>
     db
       .all("users")
       .filter(
-        (u) =>
-          u.role ===
-            "organization_admin" ||
-          u.role === "org_admin"
+        (u: any) =>
+          u.role === "org_admin" ||
+          u.role === "organization_admin"
       )
   );
 
@@ -55,7 +46,7 @@ function UsersPage() {
     }
 
     return users.filter(
-      (u) => u.status === statusFilter
+      (u: any) => u.status === statusFilter
     );
   }, [users, statusFilter]);
 
@@ -70,15 +61,14 @@ function UsersPage() {
 
     const csv = [
       headers.join(","),
-      ...filteredUsers.map((user) =>
+      ...filteredUsers.map((user: any) =>
         [
           user.name,
           user.email,
           user.mobile,
           orgs.find(
-            (o) =>
-              o.id ===
-              user.organization_id
+            (o: any) =>
+              o.id === user.organization_id
           )?.name ?? "",
           user.status,
         ].join(",")
@@ -142,9 +132,7 @@ function UsersPage() {
 
             <DropdownMenuItem
               onClick={() =>
-                setStatusFilter(
-                  "disabled"
-                )
+                setStatusFilter("disabled")
               }
             >
               Disabled
@@ -188,94 +176,64 @@ function UsersPage() {
         </DropdownMenu>
       </div>
 
-      <DataTable
-        data={filteredUsers}
-        exportName="organization-admins"
-        columns={[
-          {
-            key: "name",
-            header: "Name",
-            sortable: true,
-          },
-          {
-            key: "email",
-            header: "Email",
-          },
-          {
-            key: "mobile",
-            header: "Mobile",
-          },
-          {
-            key: "organization_id",
-            header: "Organization",
-            render: (r) =>
-              orgs.find(
-                (o) =>
-                  o.id ===
-                  r.organization_id
-              )?.name || "—",
-          },
-          {
-            key: "status",
-            header: "Status",
-            render: (r) => (
-              <Badge
-                variant={
-                  r.status === "active"
-                    ? "default"
-                    : "secondary"
-                }
+      <div className="overflow-hidden rounded-lg border">
+        <div className="grid grid-cols-5 border-b bg-muted/50 p-3 text-sm font-semibold">
+          <div>Name</div>
+          <div>Email</div>
+          <div>Mobile</div>
+          <div>Organization</div>
+          <div>Status</div>
+        </div>
+
+        {filteredUsers.map((user: any) => (
+          <div
+            key={user.id}
+            className="grid grid-cols-5 items-center border-b p-3 text-sm"
+          >
+            <div>{user.name}</div>
+            <div>{user.email}</div>
+            <div>{user.mobile}</div>
+
+            <div>
+              {orgs.find(
+                (o: any) =>
+                  o.id === user.organization_id
+              )?.name || "—"}
+            </div>
+
+            <div>
+              <button
+                onClick={() => {
+                  db.update(
+                    "users",
+                    user.id,
+                    {
+                      status:
+                        user.status ===
+                        "active"
+                          ? "disabled"
+                          : "active",
+                    } as never
+                  );
+
+                  toast.success(
+                    "Status updated"
+                  );
+                }}
+                className={`rounded-full px-3 py-1 text-xs font-medium ${
+                  user.status === "active"
+                    ? "bg-green-100 text-green-700"
+                    : "bg-red-100 text-red-700"
+                }`}
               >
-                {r.status}
-              </Badge>
-            ),
-          },
-        ]}
-        rowActions={(r) => (
-          <div className="flex justify-end gap-1">
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={() => {
-                db.update(
-                  "users",
-                  r.id,
-                  {
-                    status:
-                      r.status ===
-                      "active"
-                        ? "disabled"
-                        : "active",
-                  } as never
-                );
-
-                toast.success(
-                  "Status updated"
-                );
-              }}
-            >
-              <Power className="h-4 w-4" />
-            </Button>
-
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={() => {
-                db.remove(
-                  "users",
-                  r.id
-                );
-
-                toast.success(
-                  "Deleted"
-                );
-              }}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+                {user.status === "active"
+                  ? "Active"
+                  : "Disabled"}
+              </button>
+            </div>
           </div>
-        )}
-      />
+        ))}
+      </div>
     </div>
   );
 }

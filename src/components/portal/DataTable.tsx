@@ -10,9 +10,7 @@ import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
 import {
   Table,
   TableBody,
@@ -30,7 +28,9 @@ export interface Column<T> {
   sortValue?: (row: T) => string | number;
 }
 
-export function DataTable<T extends { id: string; status?: string }>({
+export function DataTable<
+  T extends { id: string; status?: string }
+>({
   data,
   columns,
   rowActions,
@@ -48,20 +48,21 @@ export function DataTable<T extends { id: string; status?: string }>({
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
 
-  // FILTER
+  // 👉 SINGLE FILTER (ONLY ONE SYSTEM NOW)
   const [statusFilter, setStatusFilter] = useState<
     "all" | "active" | "inactive"
   >("all");
 
   const [filterOpen, setFilterOpen] = useState(false);
-
-  // EXPORT
   const [exportOpen, setExportOpen] = useState(false);
 
+  // =========================
+  // FILTER → SEARCH → SORT
+  // =========================
   const rows = useMemo(() => {
     let result = [...data];
 
-    // SEARCH
+    // 1. SEARCH
     if (search.trim()) {
       result = result.filter((row) =>
         Object.values(row).some((value) =>
@@ -70,14 +71,14 @@ export function DataTable<T extends { id: string; status?: string }>({
       );
     }
 
-    // FILTER
+    // 2. FILTER (ONLY ONE FILTER SYSTEM)
     if (statusFilter !== "all") {
       result = result.filter(
         (row: any) => row.status === statusFilter
       );
     }
 
-    // SORT
+    // 3. SORT
     if (sortKey) {
       const column = columns.find(
         (c) => String(c.key) === sortKey
@@ -98,7 +99,7 @@ export function DataTable<T extends { id: string; status?: string }>({
     }
 
     return result;
-  }, [data, columns, sortKey, sortDir, search, statusFilter]);
+  }, [data, search, statusFilter, sortKey, sortDir, columns]);
 
   function toggleSort(key: string) {
     if (sortKey === key) {
@@ -109,8 +110,9 @@ export function DataTable<T extends { id: string; status?: string }>({
     }
   }
 
-  // ---------- EXPORT HELPERS ----------
-
+  // =========================
+  // EXPORT (USES FILTERED DATA ONLY)
+  // =========================
   function getExportRows() {
     return rows.map((row) => {
       const obj: any = {};
@@ -150,6 +152,7 @@ export function DataTable<T extends { id: string; status?: string }>({
     const doc = new jsPDF();
 
     const headers = columns.map((c) => c.header);
+
     const dataRows = rows.map((row) =>
       columns.map((col) =>
         col.sortValue
@@ -165,14 +168,6 @@ export function DataTable<T extends { id: string; status?: string }>({
 
     doc.save(`${exportName}.pdf`);
   }
-
-  const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
-  const currentPage = Math.min(page, totalPages);
-
-  const paginatedRows = rows.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
-  );
 
   return (
     <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
@@ -201,11 +196,11 @@ export function DataTable<T extends { id: string; status?: string }>({
             {rows.length} records
           </div>
 
-          {/* FILTER BUTTON */}
+          {/* 🔥 ONLY ONE FILTER (ACTIVE/INACTIVE SYSTEM) */}
           <div className="relative">
             <button
-              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium border border-input bg-background shadow-sm hover:bg-accent h-9 px-4 py-2"
-              onClick={() => setFilterOpen((v) => !v)}
+              className="inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm"
+              onClick={() => setFilterOpen(v => !v)}
             >
               <Funnel className="h-4 w-4" />
               Filter
@@ -213,16 +208,11 @@ export function DataTable<T extends { id: string; status?: string }>({
 
             {filterOpen && (
               <div className="absolute right-0 mt-2 w-40 rounded-md border bg-white shadow-md z-50">
+
                 {["all", "active", "inactive"].map((f) => (
                   <button
                     key={f}
-                    className={`w-full px-3 py-2 text-left hover:bg-gray-100 ${
-                      f === "active"
-                        ? "text-green-600"
-                        : f === "inactive"
-                        ? "text-red-600"
-                        : ""
-                    }`}
+                    className="w-full px-3 py-2 text-left hover:bg-gray-100"
                     onClick={() => {
                       setStatusFilter(f as any);
                       setFilterOpen(false);
@@ -231,15 +221,17 @@ export function DataTable<T extends { id: string; status?: string }>({
                     {f.toUpperCase()}
                   </button>
                 ))}
+
               </div>
             )}
           </div>
 
-          {/* EXPORT DROPDOWN */}
+          
+          {/* EXPORT */}
           <div className="relative">
             <button
-              className="inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm shadow-sm hover:bg-accent"
-              onClick={() => setExportOpen((v) => !v)}
+              className="inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm"
+              onClick={() => setExportOpen(v => !v)}
             >
               <Download className="h-4 w-4" />
               Export
@@ -247,24 +239,13 @@ export function DataTable<T extends { id: string; status?: string }>({
 
             {exportOpen && (
               <div className="absolute right-0 mt-2 w-40 rounded-md border bg-white shadow-md z-50">
-                <button
-                  className="w-full px-3 py-2 text-left hover:bg-gray-100"
-                  onClick={exportCSV}
-                >
+                <button onClick={exportCSV} className="w-full px-3 py-2 text-left hover:bg-gray-100">
                   CSV
                 </button>
-
-                <button
-                  className="w-full px-3 py-2 text-left hover:bg-gray-100"
-                  onClick={exportExcel}
-                >
+                <button onClick={exportExcel} className="w-full px-3 py-2 text-left hover:bg-gray-100">
                   Excel
                 </button>
-
-                <button
-                  className="w-full px-3 py-2 text-left hover:bg-gray-100"
-                  onClick={exportPDF}
-                >
+                <button onClick={exportPDF} className="w-full px-3 py-2 text-left hover:bg-gray-100">
                   PDF
                 </button>
               </div>
@@ -273,6 +254,7 @@ export function DataTable<T extends { id: string; status?: string }>({
 
         </div>
       </div>
+
 
       {/* TABLE */}
       <div className="overflow-x-auto">
@@ -294,12 +276,14 @@ export function DataTable<T extends { id: string; status?: string }>({
                   )}
                 </TableHead>
               ))}
-              {rowActions && <TableHead className="text-right">Actions</TableHead>}
+              {rowActions && (
+                <TableHead className="text-right">Actions</TableHead>
+              )}
             </TableRow>
           </TableHeader>
 
           <TableBody>
-            {paginatedRows.map((row) => (
+            {rows.map((row) => (
               <TableRow key={row.id}>
                 {columns.map((c) => (
                   <TableCell key={String(c.key)}>

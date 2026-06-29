@@ -31,9 +31,19 @@ export interface Employee {
   rating: number; created_at: string;
 }
 export interface Customer {
-  id: ID; organization_id?: ID; name: string; mobile: string; email: string;
-  gender: "male" | "female" | "other"; service?: string; status: "active" | "inactive";
-  address?: string; avatar?: string; created_at: string;
+  id: ID;
+  organization_id?: ID;
+  name: string;
+  mobile: string;
+  email: string;
+  gender: "male" | "female" | "other";
+  service?: string;
+
+  status: "waiting" | "in_service" | "served";
+
+  address?: string;
+  avatar?: string;
+  created_at: string;
 }
 export interface Appointment {
   id: ID; token: string; appointment_no: string; organization_id: ID;

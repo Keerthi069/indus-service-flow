@@ -367,49 +367,41 @@ function Page() {
 
       {/* TABLE */}
       <div className="mt-4 border rounded-lg overflow-hidden">
+<div className="grid grid-cols-5 p-3 text-xs font-semibold border-b">
+  <div>Name</div>
+  <div>Category</div>
+  <div>Contact</div>
+  <div>Email</div>
+  <div>Status</div>
+</div>
 
-        <div className="grid grid-cols-6 p-3 text-xs font-semibold border-b">
-          <div>Name</div>
-          <div>Category</div>
-          <div>Contact</div>
-          <div>Email</div>
-          <div>Status</div>
-          <div>Actions</div>
-        </div>
-
-        {filtered.map((o) => (
-          <div
-            key={o.id}
-            className="grid grid-cols-6 p-3 border-b items-center"
-          >
-            <div>{o.name}</div>
-            <div className="capitalize">{o.category}</div>
-            <div>{o.contact_person}</div>
-            <div>{o.email}</div>
-
-            <Badge
-  className="w-20 justify-center capitalize"
-  variant={
-    o.status === "active"
-      ? "default"
-      : "destructive"
-  }
+        {filtered.map((o) => (<div
+  key={o.id}
+  className="grid grid-cols-5 p-3 border-b items-center"
 >
-  {o.status}
-</Badge>
+  <div>{o.name}</div>
 
-            <div>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => toggleStatus(o.id)}
-              >
-                {o.status === "active"
-                  ? "Deactivate"
-                  : "Activate"}
-              </Button>
-            </div>
-          </div>
+  <div className="capitalize">
+    {o.category}
+  </div>
+
+  <div>{o.contact_person}</div>
+
+  <div>{o.email}</div>
+
+  <div>
+    <button
+      onClick={() => toggleStatus(o.id)}
+      className={`rounded-full px-3 py-1 text-xs font-medium capitalize transition ${
+        o.status === "active"
+          ? "bg-green-100 text-green-700 hover:bg-green-200"
+          : "bg-red-100 text-red-700 hover:bg-red-200"
+      }`}
+    >
+      {o.status}
+    </button>
+  </div>
+</div>
         ))}
       </div>
     </div>

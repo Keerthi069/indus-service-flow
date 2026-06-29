@@ -181,19 +181,129 @@ export const FEEDBACK_SEED: Feedback[] = (() => {
     created_at: daysAgo(10 - (i % 10)),
   }));
 })();
+const ACTIONS = [
+  "LOGIN",
+  "LOGOUT",
+  "CREATE",
+  "UPDATE",
+  "DELETE",
+  "EXPORT",
+  "STATUS_CHANGE",
+  "ASSIGN",
+  "APPROVE",
+  "REJECT",
+];
 
-const ACTIONS = ["LOGIN", "LOGOUT", "CREATE", "UPDATE", "DELETE", "EXPORT", "STATUS_CHANGE"];
-const ENTITIES = ["Appointment", "Customer", "Employee", "Service", "Organization", "User"];
-export const AUDIT_SEED: AuditLog[] = Array.from({ length: 50 }).map((_, i) => ({
-  id: `log_${i + 1}`,
-  organization_id: ORG_SEED[i % ORG_SEED.length].id,
-  user_id: USERS_SEED[i % USERS_SEED.length].id,
-  user_name: USERS_SEED[i % USERS_SEED.length].name,
-  action: ACTIONS[i % ACTIONS.length],
-  entity: ENTITIES[i % ENTITIES.length],
-  details: `${ACTIONS[i % ACTIONS.length]} on ${ENTITIES[i % ENTITIES.length]} #${1000 + i}`,
-  created_at: daysAgo(i % 30),
-}));
+const ENTITIES = [
+  "Appointment",
+  "Customer",
+  "Employee",
+  "Service",
+  "Organization",
+  "User",
+  "Queue",
+  "Feedback",
+];
+
+const ACTION_DETAILS: Record<string, string> = {
+  LOGIN: "User logged into the system",
+  LOGOUT: "User logged out of the system",
+  CREATE: "Created a new record",
+  UPDATE: "Updated existing record",
+  DELETE: "Deleted a record",
+  EXPORT: "Exported data report",
+  STATUS_CHANGE: "Changed status of record",
+  ASSIGN: "Assigned task or appointment",
+  APPROVE: "Approved request",
+  REJECT: "Rejected request",
+};
+
+const USERS_POOL = USERS_SEED;
+
+/**
+ * =========================
+ * SUPER ADMIN AUDIT LOGS
+ * =========================
+ * Platform-wide actions (all orgs)
+ */
+export const SUPER_ADMIN_AUDIT_SEED: AuditLog[] = Array.from({ length: 60 }).map((_, i) => {
+  const action = ACTIONS[i % ACTIONS.length];
+  const entity = ENTITIES[i % ENTITIES.length];
+  const user = USERS_POOL[0]; // super admin always first user
+  const org = ORG_SEED[i % ORG_SEED.length];
+
+  const entityId = `${entity.slice(0, 3).toUpperCase()}-${2000 + i}`;
+
+  return {
+    id: `sa_log_${i + 1}`,
+    organization_id: org.id, // still linked for visibility
+    user_id: user.id,
+    user_name: user.name,
+
+    action,
+    entity,
+
+    details: `[SUPER ADMIN] ${user.name} performed ${action} on ${entity} #${entityId}`,
+
+    created_at: daysAgo(i % 30),
+  };
+});
+
+/**
+ * =========================
+ * ORG ADMIN AUDIT LOGS
+ * =========================
+ * Only inside their organization
+ */
+export const ORG_ADMIN_AUDIT_SEED: AuditLog[] = Array.from({ length: 120 }).map((_, i) => {
+  const action = ACTIONS[i % ACTIONS.length];
+  const entity = ENTITIES[i % ENTITIES.length];
+
+  // pick org admin users only
+  const orgAdmins = USERS_SEED.filter(u => u.role === "org_admin");
+  const user = orgAdmins[i % orgAdmins.length];
+
+  const org = ORG_SEED[i % ORG_SEED.length];
+
+  const entityId = `${entity.slice(0, 3).toUpperCase()}-${1000 + i}`;
+
+  let details = "";
+
+  switch (action) {
+    case "STATUS_CHANGE":
+      details = `${user.name} updated status of ${entity} #${entityId}`;
+      break;
+    case "ASSIGN":
+      details = `${user.name} assigned ${entity} #${entityId}`;
+      break;
+    case "APPROVE":
+      details = `${user.name} approved ${entity} #${entityId}`;
+      break;
+    case "REJECT":
+      details = `${user.name} rejected ${entity} #${entityId}`;
+      break;
+    default:
+      details = `${user.name} performed ${action} on ${entity} #${entityId}`;
+  }
+
+  return {
+    id: `org_log_${i + 1}`,
+    organization_id: org.id,
+    user_id: user.id,
+    user_name: user.name,
+
+    action,
+    entity,
+    details,
+
+    created_at: daysAgo(i % 30),
+  };
+});
+
+export const AUDIT_SEED: AuditLog[] = [
+  ...SUPER_ADMIN_AUDIT_SEED,
+  ...ORG_ADMIN_AUDIT_SEED,
+];
 
 export const NOTIFICATIONS_SEED: Notification[] = [
   { id: "n_1", role: "super_admin", title: "New organization request", message: "Manipal Hospital Whitefield submitted a registration request.", read: false, created_at: daysAgo(0) },
@@ -217,3 +327,4 @@ export const CONTACT_SEED: ContactMessage[] = [
   { id: "msg_2", name: "Karthik Subramanian", email: "karthik.s@example.com", subject: "Pricing query", message: "Could you share enterprise pricing for hospitals?", status: "new", created_at: daysAgo(2) },
   { id: "msg_3", name: "Meera Iyer", email: "meera.i@example.com", subject: "Partnership", message: "Interested in integration partnership for clinics.", status: "replied", created_at: daysAgo(5) },
 ];
+

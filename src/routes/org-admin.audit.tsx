@@ -15,13 +15,21 @@ import {
 import { Filter, Download } from "lucide-react";
 
 import { db, useDb } from "@/lib/mock/db";
+import { useAuth } from "@/lib/auth";
 
-export const Route = createFileRoute("/super-admin/audit")({
+export const Route = createFileRoute("/org-admin/audit")({
   component: AuditPage,
 });
 
 function AuditPage() {
-  const logs = useDb(() => db.all("audit_logs"));
+  const { user } = useAuth();
+  const orgId = user!.organization_id!;
+
+  const logs = useDb(() =>
+    db
+      .all("audit_logs")
+      .filter((l) => l.organization_id === orgId)
+  );
 
   const [actionFilter, setActionFilter] =
     useState<string>("all");
@@ -86,7 +94,7 @@ function AuditPage() {
     const a = document.createElement("a");
 
     a.href = url;
-    a.download = "audit-logs.csv";
+    a.download = "org-audit-logs.csv";
     a.click();
 
     URL.revokeObjectURL(url);
@@ -96,7 +104,7 @@ function AuditPage() {
     <div>
       <PageHeader
         title="Audit Logs"
-        subtitle="Track every meaningful action on the platform."
+        subtitle="Track all actions performed within your organization."
       />
 
       <div className="overflow-hidden rounded-lg border">

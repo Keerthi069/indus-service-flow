@@ -10,6 +10,7 @@ const items: NavItem[] = [
   { to: "/super-admin/users", label: "Users", icon: Users },
   { to: "/super-admin/audit", label: "Audit Logs", icon: Activity },
   { to: "/super-admin/reports", label: "Reports", icon: FileBarChart },
+  { to: "/super-admin/subscriptions", label: "Subscriptions", icon: FileBarChart },
   { to: "/super-admin/settings", label: "Settings", icon: Settings },
 ];
 

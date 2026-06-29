@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { BarChart3, Bot, Briefcase, CalendarCheck, FileBarChart, FolderTree, LayoutDashboard, Settings, Sparkles, TimerReset, Users, Wrench } from "lucide-react";
+import {  Activity, BarChart3, Briefcase, CalendarCheck, FileBarChart, FolderTree, LayoutDashboard, Settings, Sparkles, TimerReset, Users, Wrench } from "lucide-react";
 import { PortalShell, type NavItem } from "@/components/portal/PortalShell";
 
 const items: NavItem[] = [
@@ -12,7 +12,7 @@ const items: NavItem[] = [
   { to: "/org-admin/appointments", label: "Appointments", icon: CalendarCheck },
   { to: "/org-admin/simulations", label: "Simulations", icon: Sparkles },
   { to: "/org-admin/analytics", label: "Analytics", icon: BarChart3 },
-  { to: "/org-admin/ai", label: "AI Recommendations", icon: Bot },
+  {  to: "/org-admin/audit", label: "Audit Logs", icon: Activity },
   { to: "/org-admin/reports", label: "Reports", icon: FileBarChart },
   { to: "/org-admin/settings", label: "Settings", icon: Settings },
 ];

@@ -1,205 +1,240 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Users, Clock, Star, Timer, Download } from "lucide-react";
+import { CheckCircle2, Clock, Users, Star } from "lucide-react";
+import {
+  Area,
+  AreaChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
-import { PageHeader, Kpi } from "@/components/portal/PortalShell";
+import { PageHeader } from "@/components/portal/PortalShell";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-
-import { useAuth } from "@/lib/auth";
-import { db, useDb } from "@/lib/mock/db";
 
 export const Route = createFileRoute("/employee/")({
-  component: EmpDash,
+  component: EmployeeDashboard,
 });
 
-function EmpDash() {
-  const { user } = useAuth();
+const handleTime = [
+  { hour: "09:00", minutes: 12 },
+  { hour: "10:00", minutes: 14 },
+  { hour: "11:00", minutes: 11 },
+  { hour: "12:00", minutes: 13 },
+  { hour: "13:00", minutes: 10 },
+  { hour: "14:00", minutes: 15 },
+  { hour: "15:00", minutes: 12 },
+  { hour: "16:00", minutes: 16 },
+  { hour: "17:00", minutes: 11 },
+];
 
-  const orgId = user?.organization_id;
+const hospitalSchedule = [
+  {
+    start: 9,
+    end: 11,
+    title: "Outpatient Consultation",
+  },
+  {
+    start: 11,
+    end: 13,
+    title: "Ward Round & Patient Assessment",
+  },
+  {
+    start: 14,
+    end: 16,
+    title: "Follow-up Consultations",
+  },
+  {
+    start: 16,
+    end: 18,
+    title: "Patient Documentation & Discharge Review",
+  },
+];
 
-  // Employee data
-  const employees = useDb(() =>
-    db
-      .all("employees")
-      .filter((e) => e.organization_id === orgId)
-  );
-
-  const activeCount = employees.filter(
-    (e) => e.status === "active"
-  ).length;
-
-  const inactiveCount = employees.filter(
-    (e) => e.status === "inactive"
-  ).length;
-
-  const toggleStatus = (
-    id: string,
-    current: "active" | "inactive"
-  ) => {
-    db.update("employees", id, {
-      status:
-        current === "active"
-          ? "inactive"
-          : "active",
-    });
-  };
-
-  const exportCsv = () => {
-    const header = [
-      "Name",
-      "Designation",
-      "Email",
-      "Mobile",
-      "Shift",
-      "Status",
-    ];
-   
-  
-
-    const rows = employees.map((e) => [
-      e.name,
-      e.designation,
-      e.email,
-      e.mobile,
-      e.shift,
-      e.status,
-    ]);
-
-   const toggleStatus = (
-  id: string,
-  current: "active" | "inactive"
-) => {
-  console.log("clicked", id, current);
-
-  db.update("employees", id, {
-    status: current === "active" ? "inactive" : "active",
-  });
+const tooltipStyle = {
+  borderRadius: 10,
+  border: "1px solid hsl(var(--border))",
+  background: "hsl(var(--card))",
 };
 
-    const csv = [header, ...rows]
-      .map((row) => row.join(","))
-      .join("\n");
+function StatCard({
+  title,
+  value,
+  subtitle,
+  icon: Icon,
+}: {
+  title: string;
+  value: string | number;
+  subtitle: string;
+  icon: React.ElementType;
+}) {
+  return (
+    <Card>
+      <CardContent className="p-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-muted-foreground">
+              {title}
+            </p>
 
-    const blob = new Blob([csv], {
-      type: "text/csv;charset=utf-8",
-    });
+            <h3 className="mt-2 text-3xl font-bold">
+              {value}
+            </h3>
 
-    const url = URL.createObjectURL(blob);
+            <p className="mt-1 text-xs text-muted-foreground">
+              {subtitle}
+            </p>
+          </div>
 
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "employees.csv";
-    a.click();
+          <div className="rounded-xl bg-primary/10 p-3">
+            <Icon className="h-6 w-6 text-primary" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
-    URL.revokeObjectURL(url);
-  };
+function EmployeeDashboard() {
+  const currentHour = new Date().getHours();
+
+  const upcomingSchedule = hospitalSchedule.filter(
+    (item) => item.end > currentHour
+  );
 
   return (
     <div>
       <PageHeader
-        title={`Welcome, ${user?.name?.split(" ")[0] ?? "Employee"}`}
-        subtitle="Employee management overview."
+        title="Good Morning, Dr. Aishwarya"
+        subtitle="Here's your day at a glance"
       />
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <Kpi
-          label="Total Employees"
-          value={employees.length}
-          icon={Users}
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          title="Patients Seen Today"
+          value={24}
+          subtitle="4 more than average"
+          icon={CheckCircle2}
         />
 
-        <Kpi
-          label="Active Employees"
-          value={activeCount}
-          icon={Star}
-        />
-
-        <Kpi
-          label="Inactive Employees"
-          value={inactiveCount}
+        <StatCard
+          title="Average Consultation"
+          value="14m"
+          subtitle="Within target time"
           icon={Clock}
         />
 
-        <Kpi
-          label="Average Rating"
-          value={
-            employees.length
-              ? (
-                  employees.reduce(
-                    (sum, e) => sum + e.rating,
-                    0
-                  ) / employees.length
-                ).toFixed(1)
-              : "0"
-          }
-          icon={Timer}
+        <StatCard
+          title="Patients Waiting"
+          value={6}
+          subtitle="General OPD Queue"
+          icon={Users}
+        />
+
+        <StatCard
+          title="Patient Satisfaction"
+          value="4.9"
+          subtitle="Excellent rating"
+          icon={Star}
         />
       </div>
 
-      <div className="mt-6 flex items-center justify-between">
-        <h2 className="text-lg font-semibold">
-          Employees
-        </h2>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardContent className="p-5">
+            <h3 className="mb-4 font-semibold">
+              Today's Consultation Time
+            </h3>
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={exportCsv}
-          className="inline-flex items-center gap-2"
-        >
-          <Download className="h-4 w-4" />
-          Export
-        </Button>
-      </div>
+            <div className="h-72">
+              <ResponsiveContainer
+                width="100%"
+                height="100%"
+              >
+                <AreaChart data={handleTime}>
+                  <defs>
+                    <linearGradient
+                      id="consultationGradient"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop
+                        offset="0%"
+                        stopColor="currentColor"
+                        stopOpacity={0.35}
+                      />
+                      <stop
+                        offset="100%"
+                        stopColor="currentColor"
+                        stopOpacity={0}
+                      />
+                    </linearGradient>
+                  </defs>
 
-      <Card className="mt-3">
-        <CardContent className="p-4">
-          {employees.length === 0 ? (
-            <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
-              No employees found.
+                  <XAxis
+                    dataKey="hour"
+                    fontSize={12}
+                  />
+
+                  <YAxis fontSize={12} />
+
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                  />
+
+                  <Area
+                    type="monotone"
+                    dataKey="minutes"
+                    strokeWidth={3}
+                    fill="url(#consultationGradient)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
-          ) : (
-            <ul className="grid gap-2">
-              {employees.map((emp) => (
-                <li
-                  key={emp.id}
-                  className="flex items-center justify-between rounded-md border bg-card px-3 py-3"
-                >
-                  <div>
-                    <div className="font-medium">
-                      {emp.name}
-                    </div>
+          </CardContent>
+        </Card>
 
-                    <div className="text-sm text-muted-foreground">
-                      {emp.designation}
-                    </div>
+        <Card>
+          <CardContent className="p-5">
+            <h3 className="mb-4 font-semibold">
+              Remaining Schedule Today
+            </h3>
 
-                    <div className="mt-1 text-xs text-muted-foreground">
-                      {emp.email} • {emp.mobile}
-                    </div>
-                  </div>
+            {upcomingSchedule.length ? (
+              <div className="space-y-3">
+                {upcomingSchedule.map(
+                  (item, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center gap-3 rounded-xl border p-3"
+                    >
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
+                        {index + 1}
+                      </div>
 
-             <button
-  type="button"
-  onClick={() => {
-    console.log("clicked");
-    toggleStatus(emp.id, emp.status);
-  }}
-  className={`px-3 py-1 rounded-md text-xs font-medium border cursor-pointer ${
-    emp.status === "active"
-      ? "border-green-400 bg-green-100 text-green-700"
-      : "border-red-400 bg-red-100 text-red-700"
-  }`}
->
-  {emp.status}
-</button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+                      <div>
+                        <div className="font-medium">
+                          {item.title}
+                        </div>
+
+                        <div className="text-xs text-muted-foreground">
+                          {item.start}:00 - {item.end}:00
+                        </div>
+                      </div>
+                    </div>
+                  )
+                )}
+              </div>
+            ) : (
+              <div className="rounded-xl border p-8 text-center text-muted-foreground">
+                Shift completed for today
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

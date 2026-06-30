@@ -20,8 +20,6 @@ export const Route = createFileRoute("/super-admin/profile")({
   component: SuperAdminProfilePage,
 });
 
-const MAX_FILE_SIZE_MB = 5;
-
 const ADMIN = {
   name: "Arjun Mehta",
   email: "arjun.mehta@platform.io",
@@ -37,48 +35,20 @@ const ADMIN = {
 };
 
 function SuperAdminProfilePage() {
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef(null);
   const [profileImage, setProfileImage] = useState("");
-  const [uploadError, setUploadError] = useState("");
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = (event) => {
     const file = event.target.files?.[0];
-    // Reset the input so re-selecting the same file still fires onChange
-    event.target.value = "";
-
     if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      setUploadError("Please upload an image file.");
-      return;
-    }
-
-    if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
-      setUploadError(`Image must be smaller than ${MAX_FILE_SIZE_MB}MB.`);
-      return;
-    }
-
-    setUploadError("");
     const reader = new FileReader();
-    reader.onloadend = () => {
-      if (typeof reader.result === "string") {
-        setProfileImage(reader.result);
-      }
-    };
+    reader.onloadend = () => setProfileImage(reader.result);
     reader.readAsDataURL(file);
   };
 
-  const initial =
-    ADMIN.name
-      ?.replace(/^dr\.??\s*/i, "")
-      ?.trim()
-      ?.charAt(0)
-      ?.toUpperCase() || "U";
-
-  const displayName = ADMIN.name.replace(/^dr\.??\s*/i, "");
-
   return (
     <div className="space-y-6">
+      
       {/* Profile Header */}
       <Card>
         <CardContent className="p-6">
@@ -87,12 +57,12 @@ function SuperAdminProfilePage() {
               {profileImage ? (
                 <img
                   src={profileImage}
-                  alt={displayName}
+                  alt={ADMIN.name}
                   className="h-28 w-28 rounded-full border object-cover"
                 />
               ) : (
                 <div className="grid h-28 w-28 place-items-center rounded-full border bg-primary/10 text-4xl font-bold text-primary">
-                  {initial}
+                  {ADMIN.avatarInitials}
                 </div>
               )}
 
@@ -101,7 +71,6 @@ function SuperAdminProfilePage() {
                 variant="secondary"
                 className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full"
                 onClick={() => fileInputRef.current?.click()}
-                type="button"
               >
                 <Upload className="h-4 w-4" />
               </Button>
@@ -116,18 +85,13 @@ function SuperAdminProfilePage() {
             </div>
 
             <div className="flex-1">
-              <h1 className="text-3xl font-bold">{displayName}</h1>
-              <p className="mt-1 text-muted-foreground">Super Admin</p>
-
+              <h1 className="text-3xl font-bold">{ADMIN.name}</h1>
+              <p className="mt-1 text-muted-foreground">{ADMIN.role}</p>
               <div className="mt-3 flex flex-wrap gap-2">
-                <Badge>ADM-0001</Badge>
+                <Badge>{ADMIN.adminId}</Badge>
                 <Badge variant="secondary">Active</Badge>
-                <Badge variant="outline">Platform.io</Badge>
+                <Badge variant="outline">{ADMIN.org}</Badge>
               </div>
-
-              {uploadError && (
-                <p className="mt-2 text-sm text-destructive">{uploadError}</p>
-              )}
             </div>
           </div>
         </CardContent>
@@ -143,7 +107,7 @@ function SuperAdminProfilePage() {
               <Shield className="h-4 w-4 text-muted-foreground" />
               <div>
                 <div className="text-sm text-muted-foreground">Role</div>
-                <div>Super Admin</div>
+                <div>{ADMIN.role}</div>
               </div>
             </div>
 
@@ -151,7 +115,7 @@ function SuperAdminProfilePage() {
               <Building2 className="h-4 w-4 text-muted-foreground" />
               <div>
                 <div className="text-sm text-muted-foreground">Department</div>
-                <div>Platform Operations</div>
+                <div>{ADMIN.department}</div>
               </div>
             </div>
 
@@ -159,7 +123,7 @@ function SuperAdminProfilePage() {
               <Clock className="h-4 w-4 text-muted-foreground" />
               <div>
                 <div className="text-sm text-muted-foreground">Timezone</div>
-                <div>Asia/Kolkata (IST, UTC+5:30)</div>
+                <div>{ADMIN.timezone}</div>
               </div>
             </div>
 
@@ -167,7 +131,7 @@ function SuperAdminProfilePage() {
               <Calendar className="h-4 w-4 text-muted-foreground" />
               <div>
                 <div className="text-sm text-muted-foreground">Member since</div>
-                <div>12 January 2023</div>
+                <div>{ADMIN.joined}</div>
               </div>
             </div>
           </CardContent>
@@ -189,7 +153,7 @@ function SuperAdminProfilePage() {
               <Phone className="h-4 w-4 text-muted-foreground" />
               <div>
                 <div className="text-sm text-muted-foreground">Phone</div>
-                <div>+91 98765 43210</div>
+                <div>{ADMIN.phone}</div>
               </div>
             </div>
 
@@ -197,7 +161,7 @@ function SuperAdminProfilePage() {
               <User className="h-4 w-4 text-muted-foreground" />
               <div>
                 <div className="text-sm text-muted-foreground">Admin ID</div>
-                <div>ADM-0001</div>
+                <div>{ADMIN.adminId}</div>
               </div>
             </div>
 
@@ -205,7 +169,7 @@ function SuperAdminProfilePage() {
               <Laptop className="h-4 w-4 text-muted-foreground" />
               <div>
                 <div className="text-sm text-muted-foreground">Last login</div>
-                <div>Today at 09:41 AM · Chrome, macOS</div>
+                <div>{ADMIN.lastLogin}</div>
               </div>
             </div>
           </CardContent>

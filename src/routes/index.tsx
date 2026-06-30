@@ -204,7 +204,7 @@ function Hero() {
               <Link to="/book-appointment">Book an appointment</Link>
             </Button>
             <Button size="lg" variant="ghost" asChild className="h-12 px-6 text-base">
-              <Link to="/login">Sign in</Link>
+              <Link to="/login" search={{ redirect: undefined }}>Sign in</Link>
             </Button>
           </div>
 
@@ -448,7 +448,9 @@ function Portals() {
                 ))}
               </ul>
               <div className="mt-5 flex gap-2">
-                <Button asChild><Link to="/login">Sign in</Link></Button>
+                <Button asChild>
+                  <Link to="/login" search={{ redirect: undefined }}>Sign in</Link>
+                </Button>
                 {p.key === "org_admin" && (
                   <Button asChild variant="outline">
                     <Link to="/register-organization">Register organization</Link>

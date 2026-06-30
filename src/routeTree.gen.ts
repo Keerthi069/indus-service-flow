@@ -22,15 +22,14 @@ import { Route as OrgAdminIndexRouteImport } from './routes/org-admin.index'
 import { Route as EmployeeIndexRouteImport } from './routes/employee.index'
 import { Route as SuperAdminUsersRouteImport } from './routes/super-admin.users'
 import { Route as SuperAdminSubscriptionsRouteImport } from './routes/super-admin.subscriptions'
-import { Route as SuperAdminSettingsRouteImport } from './routes/super-admin.settings'
 import { Route as SuperAdminRequestsRouteImport } from './routes/super-admin.requests'
 import { Route as SuperAdminReportsRouteImport } from './routes/super-admin.reports'
 import { Route as SuperAdminProfileRouteImport } from './routes/super-admin.profile'
+import { Route as SuperAdminPlansRouteImport } from './routes/super-admin.plans'
 import { Route as SuperAdminOrganizationsRouteImport } from './routes/super-admin.organizations'
 import { Route as SuperAdminCategoriesRouteImport } from './routes/super-admin.categories'
 import { Route as SuperAdminAuditRouteImport } from './routes/super-admin.audit'
 import { Route as OrgAdminSimulationsRouteImport } from './routes/org-admin.simulations'
-import { Route as OrgAdminSettingsRouteImport } from './routes/org-admin.settings'
 import { Route as OrgAdminServicesRouteImport } from './routes/org-admin.services'
 import { Route as OrgAdminServiceCategoriesRouteImport } from './routes/org-admin.service-categories'
 import { Route as OrgAdminReportsRouteImport } from './routes/org-admin.reports'
@@ -111,11 +110,6 @@ const SuperAdminSubscriptionsRoute = SuperAdminSubscriptionsRouteImport.update({
   path: '/subscriptions',
   getParentRoute: () => SuperAdminRoute,
 } as any)
-const SuperAdminSettingsRoute = SuperAdminSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => SuperAdminRoute,
-} as any)
 const SuperAdminRequestsRoute = SuperAdminRequestsRouteImport.update({
   id: '/requests',
   path: '/requests',
@@ -129,6 +123,11 @@ const SuperAdminReportsRoute = SuperAdminReportsRouteImport.update({
 const SuperAdminProfileRoute = SuperAdminProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
+const SuperAdminPlansRoute = SuperAdminPlansRouteImport.update({
+  id: '/plans',
+  path: '/plans',
   getParentRoute: () => SuperAdminRoute,
 } as any)
 const SuperAdminOrganizationsRoute = SuperAdminOrganizationsRouteImport.update({
@@ -149,11 +148,6 @@ const SuperAdminAuditRoute = SuperAdminAuditRouteImport.update({
 const OrgAdminSimulationsRoute = OrgAdminSimulationsRouteImport.update({
   id: '/simulations',
   path: '/simulations',
-  getParentRoute: () => OrgAdminRoute,
-} as any)
-const OrgAdminSettingsRoute = OrgAdminSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
   getParentRoute: () => OrgAdminRoute,
 } as any)
 const OrgAdminServicesRoute = OrgAdminServicesRouteImport.update({
@@ -251,15 +245,14 @@ export interface FileRoutesByFullPath {
   '/org-admin/reports': typeof OrgAdminReportsRoute
   '/org-admin/service-categories': typeof OrgAdminServiceCategoriesRoute
   '/org-admin/services': typeof OrgAdminServicesRoute
-  '/org-admin/settings': typeof OrgAdminSettingsRoute
   '/org-admin/simulations': typeof OrgAdminSimulationsRoute
   '/super-admin/audit': typeof SuperAdminAuditRoute
   '/super-admin/categories': typeof SuperAdminCategoriesRoute
   '/super-admin/organizations': typeof SuperAdminOrganizationsRoute
+  '/super-admin/plans': typeof SuperAdminPlansRoute
   '/super-admin/profile': typeof SuperAdminProfileRoute
   '/super-admin/reports': typeof SuperAdminReportsRoute
   '/super-admin/requests': typeof SuperAdminRequestsRoute
-  '/super-admin/settings': typeof SuperAdminSettingsRoute
   '/super-admin/subscriptions': typeof SuperAdminSubscriptionsRoute
   '/super-admin/users': typeof SuperAdminUsersRoute
   '/employee/': typeof EmployeeIndexRoute
@@ -286,15 +279,14 @@ export interface FileRoutesByTo {
   '/org-admin/reports': typeof OrgAdminReportsRoute
   '/org-admin/service-categories': typeof OrgAdminServiceCategoriesRoute
   '/org-admin/services': typeof OrgAdminServicesRoute
-  '/org-admin/settings': typeof OrgAdminSettingsRoute
   '/org-admin/simulations': typeof OrgAdminSimulationsRoute
   '/super-admin/audit': typeof SuperAdminAuditRoute
   '/super-admin/categories': typeof SuperAdminCategoriesRoute
   '/super-admin/organizations': typeof SuperAdminOrganizationsRoute
+  '/super-admin/plans': typeof SuperAdminPlansRoute
   '/super-admin/profile': typeof SuperAdminProfileRoute
   '/super-admin/reports': typeof SuperAdminReportsRoute
   '/super-admin/requests': typeof SuperAdminRequestsRoute
-  '/super-admin/settings': typeof SuperAdminSettingsRoute
   '/super-admin/subscriptions': typeof SuperAdminSubscriptionsRoute
   '/super-admin/users': typeof SuperAdminUsersRoute
   '/employee': typeof EmployeeIndexRoute
@@ -325,15 +317,14 @@ export interface FileRoutesById {
   '/org-admin/reports': typeof OrgAdminReportsRoute
   '/org-admin/service-categories': typeof OrgAdminServiceCategoriesRoute
   '/org-admin/services': typeof OrgAdminServicesRoute
-  '/org-admin/settings': typeof OrgAdminSettingsRoute
   '/org-admin/simulations': typeof OrgAdminSimulationsRoute
   '/super-admin/audit': typeof SuperAdminAuditRoute
   '/super-admin/categories': typeof SuperAdminCategoriesRoute
   '/super-admin/organizations': typeof SuperAdminOrganizationsRoute
+  '/super-admin/plans': typeof SuperAdminPlansRoute
   '/super-admin/profile': typeof SuperAdminProfileRoute
   '/super-admin/reports': typeof SuperAdminReportsRoute
   '/super-admin/requests': typeof SuperAdminRequestsRoute
-  '/super-admin/settings': typeof SuperAdminSettingsRoute
   '/super-admin/subscriptions': typeof SuperAdminSubscriptionsRoute
   '/super-admin/users': typeof SuperAdminUsersRoute
   '/employee/': typeof EmployeeIndexRoute
@@ -365,15 +356,14 @@ export interface FileRouteTypes {
     | '/org-admin/reports'
     | '/org-admin/service-categories'
     | '/org-admin/services'
-    | '/org-admin/settings'
     | '/org-admin/simulations'
     | '/super-admin/audit'
     | '/super-admin/categories'
     | '/super-admin/organizations'
+    | '/super-admin/plans'
     | '/super-admin/profile'
     | '/super-admin/reports'
     | '/super-admin/requests'
-    | '/super-admin/settings'
     | '/super-admin/subscriptions'
     | '/super-admin/users'
     | '/employee/'
@@ -400,15 +390,14 @@ export interface FileRouteTypes {
     | '/org-admin/reports'
     | '/org-admin/service-categories'
     | '/org-admin/services'
-    | '/org-admin/settings'
     | '/org-admin/simulations'
     | '/super-admin/audit'
     | '/super-admin/categories'
     | '/super-admin/organizations'
+    | '/super-admin/plans'
     | '/super-admin/profile'
     | '/super-admin/reports'
     | '/super-admin/requests'
-    | '/super-admin/settings'
     | '/super-admin/subscriptions'
     | '/super-admin/users'
     | '/employee'
@@ -438,15 +427,14 @@ export interface FileRouteTypes {
     | '/org-admin/reports'
     | '/org-admin/service-categories'
     | '/org-admin/services'
-    | '/org-admin/settings'
     | '/org-admin/simulations'
     | '/super-admin/audit'
     | '/super-admin/categories'
     | '/super-admin/organizations'
+    | '/super-admin/plans'
     | '/super-admin/profile'
     | '/super-admin/reports'
     | '/super-admin/requests'
-    | '/super-admin/settings'
     | '/super-admin/subscriptions'
     | '/super-admin/users'
     | '/employee/'
@@ -558,13 +546,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SuperAdminSubscriptionsRouteImport
       parentRoute: typeof SuperAdminRoute
     }
-    '/super-admin/settings': {
-      id: '/super-admin/settings'
-      path: '/settings'
-      fullPath: '/super-admin/settings'
-      preLoaderRoute: typeof SuperAdminSettingsRouteImport
-      parentRoute: typeof SuperAdminRoute
-    }
     '/super-admin/requests': {
       id: '/super-admin/requests'
       path: '/requests'
@@ -584,6 +565,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/super-admin/profile'
       preLoaderRoute: typeof SuperAdminProfileRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/plans': {
+      id: '/super-admin/plans'
+      path: '/plans'
+      fullPath: '/super-admin/plans'
+      preLoaderRoute: typeof SuperAdminPlansRouteImport
       parentRoute: typeof SuperAdminRoute
     }
     '/super-admin/organizations': {
@@ -612,13 +600,6 @@ declare module '@tanstack/react-router' {
       path: '/simulations'
       fullPath: '/org-admin/simulations'
       preLoaderRoute: typeof OrgAdminSimulationsRouteImport
-      parentRoute: typeof OrgAdminRoute
-    }
-    '/org-admin/settings': {
-      id: '/org-admin/settings'
-      path: '/settings'
-      fullPath: '/org-admin/settings'
-      preLoaderRoute: typeof OrgAdminSettingsRouteImport
       parentRoute: typeof OrgAdminRoute
     }
     '/org-admin/services': {
@@ -753,7 +734,6 @@ interface OrgAdminRouteChildren {
   OrgAdminReportsRoute: typeof OrgAdminReportsRoute
   OrgAdminServiceCategoriesRoute: typeof OrgAdminServiceCategoriesRoute
   OrgAdminServicesRoute: typeof OrgAdminServicesRoute
-  OrgAdminSettingsRoute: typeof OrgAdminSettingsRoute
   OrgAdminSimulationsRoute: typeof OrgAdminSimulationsRoute
   OrgAdminIndexRoute: typeof OrgAdminIndexRoute
 }
@@ -769,7 +749,6 @@ const OrgAdminRouteChildren: OrgAdminRouteChildren = {
   OrgAdminReportsRoute: OrgAdminReportsRoute,
   OrgAdminServiceCategoriesRoute: OrgAdminServiceCategoriesRoute,
   OrgAdminServicesRoute: OrgAdminServicesRoute,
-  OrgAdminSettingsRoute: OrgAdminSettingsRoute,
   OrgAdminSimulationsRoute: OrgAdminSimulationsRoute,
   OrgAdminIndexRoute: OrgAdminIndexRoute,
 }
@@ -782,10 +761,10 @@ interface SuperAdminRouteChildren {
   SuperAdminAuditRoute: typeof SuperAdminAuditRoute
   SuperAdminCategoriesRoute: typeof SuperAdminCategoriesRoute
   SuperAdminOrganizationsRoute: typeof SuperAdminOrganizationsRoute
+  SuperAdminPlansRoute: typeof SuperAdminPlansRoute
   SuperAdminProfileRoute: typeof SuperAdminProfileRoute
   SuperAdminReportsRoute: typeof SuperAdminReportsRoute
   SuperAdminRequestsRoute: typeof SuperAdminRequestsRoute
-  SuperAdminSettingsRoute: typeof SuperAdminSettingsRoute
   SuperAdminSubscriptionsRoute: typeof SuperAdminSubscriptionsRoute
   SuperAdminUsersRoute: typeof SuperAdminUsersRoute
   SuperAdminIndexRoute: typeof SuperAdminIndexRoute
@@ -795,10 +774,10 @@ const SuperAdminRouteChildren: SuperAdminRouteChildren = {
   SuperAdminAuditRoute: SuperAdminAuditRoute,
   SuperAdminCategoriesRoute: SuperAdminCategoriesRoute,
   SuperAdminOrganizationsRoute: SuperAdminOrganizationsRoute,
+  SuperAdminPlansRoute: SuperAdminPlansRoute,
   SuperAdminProfileRoute: SuperAdminProfileRoute,
   SuperAdminReportsRoute: SuperAdminReportsRoute,
   SuperAdminRequestsRoute: SuperAdminRequestsRoute,
-  SuperAdminSettingsRoute: SuperAdminSettingsRoute,
   SuperAdminSubscriptionsRoute: SuperAdminSubscriptionsRoute,
   SuperAdminUsersRoute: SuperAdminUsersRoute,
   SuperAdminIndexRoute: SuperAdminIndexRoute,

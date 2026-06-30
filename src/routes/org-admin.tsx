@@ -14,7 +14,6 @@ const items: NavItem[] = [
   { to: "/org-admin/analytics", label: "Analytics", icon: BarChart3 },
   {  to: "/org-admin/audit", label: "Audit Logs", icon: Activity },
   { to: "/org-admin/reports", label: "Reports", icon: FileBarChart },
-  { to: "/org-admin/settings", label: "Settings", icon: Settings },
 ];
 
 export const Route = createFileRoute("/org-admin")({

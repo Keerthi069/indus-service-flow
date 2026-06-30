@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { JSX, useState, ComponentType } from "react";
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -54,7 +54,16 @@ const CHART_DATA = [
   { label: "Jun", new: 34, upgrades: 11, downgrades: 3, churned: 1, net: 41 },
 ];
 
-const SUBSCRIPTIONS = [
+const SUBSCRIPTIONS: {
+  org: string;
+  plan: string;
+  seats: number;
+  amount: number;
+  billing: string;
+  status: 'active' | 'trial' | 'expiring' | 'paused' | 'cancelled';
+  nextBilling: string;
+  since: string;
+}[] = [
   { org: "Meridian Health",    plan: "Enterprise", seats: 84, amount: 9800,  billing: "annual",  status: "active",   nextBilling: "2027-01-15", since: "2023-01-15" },
   { org: "Apex Ventures",      plan: "Enterprise", seats: 61, amount: 7200,  billing: "annual",  status: "active",   nextBilling: "2026-09-02", since: "2022-09-02" },
   { org: "Stellaris Corp",     plan: "Growth",     seats: 32, amount: 3600,  billing: "monthly", status: "active",   nextBilling: "2026-07-21", since: "2026-06-21" },
@@ -77,15 +86,24 @@ const PLAN_COLORS = {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function fmtUSD(n) {
+function fmtUSD(n: number) {
   return "$" + n.toLocaleString("en-US");
 }
 
-function fmtK(n) {
+function fmtK(n: number) {
   return n >= 1000 ? "$" + (n / 1000).toFixed(0) + "k" : "$" + n;
 }
 
-function exportCsv(rows) {
+function exportCsv(rows: {
+  org: string;
+  plan: string;
+  seats: number;
+  amount: number;
+  billing: string;
+  status: string;
+  nextBilling: string;
+  since: string;
+}[]) {
   const headers = "organization,plan,seats,mrr,billing,status,next_billing,member_since";
   const lines = rows.map(
     (r) =>
@@ -100,7 +118,19 @@ function exportCsv(rows) {
 
 // ── Shared primitives (mirrors ReportsPage) ───────────────────────────────────
 
-function KpiCard({ label, value, delta, positive, Icon }) {
+function KpiCard({
+  label,
+  value,
+  delta,
+  positive,
+  Icon,
+}: {
+  label: string;
+  value: string | number;
+  delta: string;
+  positive: boolean;
+  Icon: ComponentType<{ className?: string }>;
+}) {
   const DeltaIcon = positive ? TrendingUp : TrendingDown;
   return (
     <Card>
@@ -127,7 +157,7 @@ function KpiCard({ label, value, delta, positive, Icon }) {
   );
 }
 
-function SubStatusBadge({ status }) {
+function SubStatusBadge({ status }: { status: 'active' | 'trial' | 'expiring' | 'paused' | 'cancelled' }) {
   const map = {
     active:    "bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-400 dark:border-green-800",
     trial:     "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-400 dark:border-blue-800",
@@ -144,7 +174,7 @@ function SubStatusBadge({ status }) {
   );
 }
 
-function BillingBadge({ billing }) {
+function BillingBadge({ billing }: { billing: string }) {
   return (
     <span className="inline-flex items-center rounded border border-border bg-muted/50 px-1.5 py-0.5 text-xs font-medium text-muted-foreground capitalize">
       {billing}
@@ -152,7 +182,7 @@ function BillingBadge({ billing }) {
   );
 }
 
-function CustomTooltip({ active, payload, label }) {
+function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: any[]; label?: string }) {
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-lg border bg-popover px-3 py-2 text-xs shadow-md min-w-[140px]">
@@ -168,7 +198,7 @@ function CustomTooltip({ active, payload, label }) {
 }
 
 // Sort icon
-function SortIcon({ col, sortCol, sortDir }) {
+function SortIcon({ col, sortCol, sortDir }: { col: string; sortCol: string; sortDir: "asc" | "desc" }) {
   if (sortCol !== col) return <ChevronsUpDown className="h-3 w-3 text-muted-foreground/40" />;
   return sortDir === "asc"
     ? <ChevronUp className="h-3 w-3 text-foreground" />
@@ -182,11 +212,10 @@ function SubscriptionsPage() {
   const [statusFilter, setStatusFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [sortCol, setSortCol] = useState("amount");
-  const [sortDir, setSortDir] = useState("desc");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 7;
 
-  const organizations = useDb(() => db.all("organizations"));
 
   // Derived KPIs
   const activeSubs   = SUBSCRIPTIONS.filter((s) => s.status === "active");
@@ -199,7 +228,7 @@ function SubscriptionsPage() {
   const plans    = ["All", "Enterprise", "Growth", "Starter"];
   const statuses = ["All", "active", "trial", "expiring", "paused", "cancelled"];
 
-  function toggleSort(col) {
+  function toggleSort(col: string) {
     if (sortCol === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     else { setSortCol(col); setSortDir("desc"); }
     setPage(1);
@@ -213,8 +242,26 @@ function SubscriptionsPage() {
     )
     .sort((a, b) => {
       const mul = sortDir === "asc" ? 1 : -1;
-      if (sortCol === "amount" || sortCol === "seats") return (a[sortCol] - b[sortCol]) * mul;
-      return a[sortCol].localeCompare(b[sortCol]) * mul;
+      switch (sortCol) {
+        case "amount":
+          return (a.amount - b.amount) * mul;
+        case "seats":
+          return (a.seats - b.seats) * mul;
+        case "org":
+          return a.org.localeCompare(b.org) * mul;
+        case "plan":
+          return a.plan.localeCompare(b.plan) * mul;
+        case "billing":
+          return a.billing.localeCompare(b.billing) * mul;
+        case "status":
+          return a.status.localeCompare(b.status) * mul;
+        case "nextBilling":
+          return a.nextBilling.localeCompare(b.nextBilling) * mul;
+        case "since":
+          return a.since.localeCompare(b.since) * mul;
+        default:
+          return 0;
+      }
     });
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -225,7 +272,7 @@ function SubscriptionsPage() {
   const planCounts = plans.slice(1).map((p) => ({
     label: p,
     count: SUBSCRIPTIONS.filter((s) => s.plan === p && s.status === "active").length,
-    color: PLAN_COLORS[p],
+    color: PLAN_COLORS[p as keyof typeof PLAN_COLORS],
   }));
   const totalActive = planCounts.reduce((s, p) => s + p.count, 0);
 
@@ -517,7 +564,7 @@ function SubscriptionsPage() {
                       <span className="inline-flex items-center gap-1.5 text-muted-foreground">
                         <span
                           className="h-1.5 w-1.5 rounded-full flex-shrink-0"
-                          style={{ background: PLAN_COLORS[s.plan] }}
+                          style={{ background: PLAN_COLORS[s.plan as keyof typeof PLAN_COLORS] }}
                         />
                         {s.plan}
                       </span>
@@ -592,7 +639,7 @@ function SubscriptionsPage() {
                 </Button>
                 {Array.from({ length: totalPages }, (_, i) => i + 1)
                   .filter((p) => p === 1 || p === totalPages || Math.abs(p - safePage) <= 1)
-                  .reduce((acc, p, idx, arr) => {
+                  .reduce((acc: (number | string)[], p, idx, arr) => {
                     if (idx > 0 && p - arr[idx - 1] > 1) acc.push("…");
                     acc.push(p);
                     return acc;
@@ -606,7 +653,7 @@ function SubscriptionsPage() {
                         variant={p === safePage ? "default" : "outline"}
                         size="sm"
                         className="h-7 w-7 p-0 text-xs"
-                        onClick={() => setPage(p)}
+                        onClick={() => setPage(p as number)}
                       >
                         {p}
                       </Button>
@@ -638,5 +685,3 @@ function SubscriptionsPage() {
     </div>
   );
 }
-
-

@@ -81,21 +81,27 @@ function BookAppointment() {
     const no = `ISF-${Math.floor(100000 + Math.random() * 900000)}`;
 
     const created_at = new Date().toISOString();
+    const updated_at = created_at;
+    const customer_id = uid("cus");
+    const service_name = summary.service?.name || "";
 
     db.insert("appointments", {
       id,
       token,
       appointment_no: no,
       organization_id: form.orgId,
+      customer_id,
       customer_name: form.name,
       customer_email: form.email,
       customer_mobile: form.mobile,
       service_id: form.serviceId,
-      employee_id: form.employeeId || null,
+      service_name,
+      employee_id: form.employeeId || undefined,
       date: form.date,
       time: form.time,
       status: "confirmed",
       created_at,
+      updated_at,
     });
 
     toast.success("Appointment Confirmed!");

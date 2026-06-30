@@ -95,11 +95,11 @@ function CustPage() {
     autoTable(pdf, {
       head: [["Name", "Mobile", "Email", "Service", "Status"]],
       body: filteredRows.map((r) => [
-        r.name,
-        r.mobile,
-        r.email,
-        r.service,
-        r.status,
+        r.name ?? "",
+        r.mobile ?? "",
+        r.email ?? "",
+        r.service ?? "",
+        r.status ?? "",
       ]),
     });
 

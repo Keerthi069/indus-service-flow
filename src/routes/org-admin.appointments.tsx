@@ -48,6 +48,9 @@ const COLORS: Record<AppointmentStatus, string> = {
 
   rescheduled:
     "bg-warning/15 text-warning border-warning/30",
+
+  in_progress:
+    "bg-primary/15 text-primary border-primary/30",
 };
 
 export const Route = createFileRoute(
@@ -372,7 +375,7 @@ function ApptPage() {
 
                         <Badge
                           variant="outline"
-                          className={`cursor-pointer capitalize ${COLORS[row.status]}`}
+                          className={`cursor-pointer capitalize ${COLORS[row.status as AppointmentStatus]}`}
                           onClick={(e) => {
                             if (row.status === "confirmed") {
                               e.preventDefault();

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import {
@@ -10,6 +10,7 @@ import {
   Filter,
   ChevronLeft,
   ChevronRight,
+  Inbox,
 } from "lucide-react";
 
 import { PageHeader } from "@/components/portal/PortalShell";
@@ -23,6 +24,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 
 import {
   db,
@@ -55,23 +63,63 @@ function download(name: string, type: string, content: string) {
   a.href = url;
   a.download = name;
   a.click();
+  URL.revokeObjectURL(url);
 }
 
-function exportData(type: "csv" | "xls" | "pdf", data: OrgRequest[]) {
-  const base = data
-    .map(r => `${r.name},${r.category},${r.contact_person},${r.email},${r.status}`)
-    .join("\n");
+function escapeCsv(value: string) {
+  if (value == null) return "";
+  const str = String(value);
+  if (str.includes(",") || str.includes('"') || str.includes("\n")) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
+function toCsv(data: OrgRequest[]) {
+  const header = "Name,Category,Contact,Email,Status";
+  const rows = data.map((r) =>
+    [r.name, r.category, r.contact_person, r.email, r.status]
+      .map(escapeCsv)
+      .join(","),
+  );
+  return [header, ...rows].join("\n");
+}
+
+// XLS export uses an HTML table wrapped in an Excel-readable shell — this is
+// the standard lightweight way to produce a real, openable .xls without a
+// heavy spreadsheet library, rather than mislabeling plain CSV text as XLS.
+function toXlsHtml(data: OrgRequest[]) {
+  const rows = data
+    .map(
+      (r) => `<tr>
+        <td>${r.name}</td>
+        <td>${r.category}</td>
+        <td>${r.contact_person}</td>
+        <td>${r.email}</td>
+        <td>${r.status}</td>
+      </tr>`,
+    )
+    .join("");
+  return `<html><head><meta charset="utf-8"></head><body>
+    <table border="1">
+      <tr><th>Name</th><th>Category</th><th>Contact</th><th>Email</th><th>Status</th></tr>
+      ${rows}
+    </table>
+  </body></html>`;
+}
+
+function exportData(type: "csv" | "xls", data: OrgRequest[]) {
+  if (data.length === 0) {
+    toast.error("Nothing to export for the current filter.");
+    return;
+  }
 
   if (type === "csv") {
-    download("requests.csv", "text/csv", "Name,Category,Contact,Email,Status\n" + base);
+    download("requests.csv", "text/csv;charset=utf-8", toCsv(data));
   }
 
   if (type === "xls") {
-    download("requests.xls", "application/vnd.ms-excel", base);
-  }
-
-  if (type === "pdf") {
-    download("requests.pdf", "application/pdf", base);
+    download("requests.xls", "application/vnd.ms-excel", toXlsHtml(data));
   }
 
   toast.success(`Exported ${type.toUpperCase()}`);
@@ -79,30 +127,37 @@ function exportData(type: "csv" | "xls" | "pdf", data: OrgRequest[]) {
 
 /* ---------------- PAGE ---------------- */
 
+const FILTERS = ["all", "pending", "approved", "rejected"] as const;
+type FilterValue = (typeof FILTERS)[number];
+
 function RequestsPage() {
   const reqs = useDb(() => db.all("org_requests"));
 
   const [page, setPage] = useState(1);
-  const [filter, setFilter] =
-    useState<"all" | "pending" | "approved" | "rejected">("all");
+  const [filter, setFilter] = useState<FilterValue>("all");
 
   const pageSize = 5;
 
   const filtered = useMemo(() => {
     if (filter === "all") return reqs;
-    return reqs.filter(r => r.status === filter);
+    return reqs.filter((r) => r.status === filter);
   }, [reqs, filter]);
 
-  const totalPages = Math.ceil(filtered.length / pageSize);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+
+  // Keep page in range whenever the filtered set shrinks (e.g. switching
+  // filters, or an item getting approved/rejected off the current page).
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
 
   const paginated = useMemo(() => {
     const start = (page - 1) * pageSize;
     return filtered.slice(start, start + pageSize);
   }, [filtered, page]);
 
-  /* ---------------- UNIFIED BUTTON STYLE ---------------- */
   const iconBtn =
-    "h-8 w-8 p-0 flex items-center justify-center border rounded-md hover:bg-muted";
+    "h-8 w-8 p-0 flex items-center justify-center border rounded-md hover:bg-muted disabled:hover:bg-transparent";
 
   return (
     <div>
@@ -110,186 +165,196 @@ function RequestsPage() {
         title="Organization Requests"
         subtitle="Manage onboarding approvals"
         actions={
-          <div className="flex gap-2 items-center">
-
+          <div className="flex items-center gap-2">
             {/* FILTER */}
-            <div className="relative group">
-              <Button variant="outline" size="sm" className="h-9 px-3 gap-2">
-                <Filter className="h-4 w-4" />
-                Filter
-              </Button>
-
-              <div className="absolute right-0 mt-2 hidden group-hover:block bg-white border rounded-md shadow-md w-36 z-10">
-                {["all", "pending", "approved", "rejected"].map(f => (
-                  <button
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9 gap-2 px-3">
+                  <Filter className="h-4 w-4" />
+                  Filter
+                  {filter !== "all" && (
+                    <Badge variant="secondary" className="ml-1 px-1.5 py-0 text-[10px] capitalize">
+                      {filter}
+                    </Badge>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-36">
+                {FILTERS.map((f) => (
+                  <DropdownMenuItem
                     key={f}
                     onClick={() => {
-                      setFilter(f as any);
+                      setFilter(f);
                       setPage(1);
                     }}
-                    className="w-full px-3 py-2 text-sm hover:bg-muted text-left capitalize"
+                    className="justify-between capitalize"
                   >
                     {f}
-                  </button>
+                    {filter === f && <Check className="h-3.5 w-3.5" />}
+                  </DropdownMenuItem>
                 ))}
-              </div>
-            </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* EXPORT */}
-            <div className="relative group">
-              <Button variant="outline" size="sm" className="h-9 px-3 gap-2">
-                <Download className="h-4 w-4" />
-                Export
-              </Button>
-
-              <div className="absolute right-0 mt-2 hidden group-hover:block bg-white border rounded-md shadow-md w-36 z-10">
-                <button
-                  className="w-full px-3 py-2 text-sm hover:bg-muted text-left"
-                  onClick={() => exportData("csv", filtered)}
-                >
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9 gap-2 px-3">
+                  <Download className="h-4 w-4" />
+                  Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-36">
+                <DropdownMenuItem onClick={() => exportData("csv", filtered)}>
                   CSV
-                </button>
-                <button
-                  className="w-full px-3 py-2 text-sm hover:bg-muted text-left"
-                  onClick={() => exportData("xls", filtered)}
-                >
-                  XLS
-                </button>
-                <button
-                  className="w-full px-3 py-2 text-sm hover:bg-muted text-left"
-                  onClick={() => exportData("pdf", filtered)}
-                >
-                  PDF
-                </button>
-              </div>
-            </div>
-
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => exportData("xls", filtered)}>
+                  Excel
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         }
       />
 
       {/* TABLE */}
-      <div className="mt-3 border rounded-lg bg-card overflow-hidden">
-
-        {/* HEADER */}
-          <div className="grid grid-cols-7 px-3 py-2 text-xs font-semibold text-muted-foreground border-b">
-  <div>Organization</div>
-  <div>Category</div>
-  <div>Contact</div>
-  <div>Email</div>
-  <div className="text-center">View</div>
-  <div className="text-center">Status</div>
-  <div className="text-right">Actions</div>
-</div>
-
-        {/* ROWS */}
-        {paginated.map(r => (
-          <div
-            key={r.id}
-            className="grid grid-cols-7 px-3 py-2 items-center border-b hover:bg-muted/20"
-          >
-            <div className="font-medium pr-2 truncate">{r.name}</div>
-
-            <div className="pr-2">
-              <Badge variant="secondary" className="text-xs">
-                {r.category}
-              </Badge>
+      <div className="mt-3 overflow-hidden rounded-lg border bg-card">
+        <div className="overflow-x-auto">
+          <div className="min-w-[840px]">
+            {/* HEADER */}
+            <div className="grid grid-cols-7 gap-2 border-b px-3 py-2 text-xs font-semibold text-muted-foreground">
+              <div className="col-span-1">Organization</div>
+              <div className="col-span-1">Category</div>
+              <div className="col-span-1">Contact</div>
+              <div className="col-span-1">Email</div>
+              <div className="col-span-1 text-center">View</div>
+              <div className="col-span-1 text-center">Status</div>
+              <div className="col-span-1 text-right">Actions</div>
             </div>
 
-            <div className="pr-2 text-sm truncate">{r.contact_person}</div>
+            {/* EMPTY STATE */}
+            {paginated.length === 0 && (
+              <div className="flex flex-col items-center gap-2 py-12 text-center text-muted-foreground">
+                <Inbox className="h-8 w-8" />
+                <p className="text-sm">
+                  {filter === "all"
+                    ? "No organization requests yet."
+                    : `No ${filter} requests.`}
+                </p>
+                {filter !== "all" && (
+                  <Button variant="ghost" size="sm" onClick={() => setFilter("all")}>
+                    Clear filter
+                  </Button>
+                )}
+              </div>
+            )}
 
-            <div className="pr-2 text-sm text-muted-foreground truncate">
-              {r.email}
-            </div>
-{/* VIEW */}
-<div className="flex justify-center">
-  <Dialog>
-    <DialogTrigger asChild>
-      <button className={iconBtn}>
-        <Eye className="h-4 w-4 text-muted-foreground" />
-      </button>
-    </DialogTrigger>
+            {/* ROWS */}
+            {paginated.map((r) => (
+              <div
+                key={r.id}
+                className="grid grid-cols-7 items-center gap-2 border-b px-3 py-2 hover:bg-muted/20"
+              >
+                <div className="truncate pr-2 font-medium">{r.name}</div>
 
-    <DialogContent>
-      <DialogHeader>
-        <DialogTitle>{r.name}</DialogTitle>
-      </DialogHeader>
+                <div className="pr-2">
+                  <Badge variant="secondary" className="text-xs">
+                    {r.category}
+                  </Badge>
+                </div>
 
-      <div className="grid grid-cols-2 gap-2 text-sm">
-        <Info label="Category" value={r.category} />
-        <Info label="Contact" value={r.contact_person} />
-        <Info label="Email" value={r.email} />
-        <Info label="Mobile" value={r.mobile} />
-        <Info label="City" value={r.city} />
-        <Info label="Status" value={r.status} />
-      </div>
-    </DialogContent>
-  </Dialog>
-</div>
+                <div className="truncate pr-2 text-sm">{r.contact_person}</div>
 
-{/* STATUS */}
-<div className="flex justify-center">
-  {r.status === "approved" && (
-    <Badge
-      className="w-24 justify-center"
-      variant="default"
-    >
-      Approved
-    </Badge>
-  )}
+                <div className="truncate pr-2 text-sm text-muted-foreground">
+                  {r.email}
+                </div>
 
-  {r.status === "rejected" && (
-    <Badge
-      className="w-24 justify-center"
-      variant="destructive"
-    >
-      Rejected
-    </Badge>
-  )}
+                {/* VIEW */}
+                <div className="flex justify-center">
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <button className={iconBtn} aria-label={`View ${r.name}`}>
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                      </button>
+                    </DialogTrigger>
 
-  {r.status === "pending" && (
-    <Badge
-      className="w-24 justify-center bg-yellow-500 text-white hover:bg-yellow-500"
-    >
-      Pending
-    </Badge>
-  )}
-</div>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>{r.name}</DialogTitle>
+                      </DialogHeader>
 
-{/* ACTIONS */}
-<div className="flex justify-end gap-1 items-center">
-  <button
-    disabled={r.status === "approved"}
-    onClick={() => approve(r)}
-    className={`${iconBtn} ${
-      r.status === "approved"
-        ? "opacity-40 cursor-not-allowed text-green-600"
-        : "text-green-600"
-    }`}
-  >
-    <Check className="h-4 w-4" />
-  </button>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <Info label="Category" value={r.category} />
+                        <Info label="Contact" value={r.contact_person} />
+                        <Info label="Email" value={r.email} />
+                        <Info label="Mobile" value={r.mobile} />
+                        <Info label="City" value={r.city} />
+                        <Info label="Status" value={r.status} />
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
 
-  <button
-    disabled={r.status === "rejected"}
-    onClick={() => reject(r)}
-    className={`${iconBtn} ${
-      r.status === "rejected"
-        ? "opacity-40 cursor-not-allowed text-red-600"
-        : "text-red-600"
-    }`}
-  >
-    <X className="h-4 w-4" />
-  </button>
-</div>
+                {/* STATUS */}
+                <div className="flex justify-center">
+                  {r.status === "approved" && (
+                    <Badge className="w-24 justify-center" variant="default">
+                      Approved
+                    </Badge>
+                  )}
 
+                  {r.status === "rejected" && (
+                    <Badge className="w-24 justify-center" variant="destructive">
+                      Rejected
+                    </Badge>
+                  )}
+
+                  {r.status === "pending" && (
+                    <Badge className="w-24 justify-center bg-yellow-500 text-white hover:bg-yellow-500">
+                      Pending
+                    </Badge>
+                  )}
+                </div>
+
+                {/* ACTIONS */}
+                <div className="flex items-center justify-end gap-1">
+                  <button
+                    disabled={r.status === "approved"}
+                    onClick={() => approve(r)}
+                    aria-label={`Approve ${r.name}`}
+                    className={`${iconBtn} ${
+                      r.status === "approved"
+                        ? "cursor-not-allowed text-green-600 opacity-40"
+                        : "text-green-600"
+                    }`}
+                  >
+                    <Check className="h-4 w-4" />
+                  </button>
+
+                  <button
+                    disabled={r.status === "rejected"}
+                    onClick={() => reject(r)}
+                    aria-label={`Reject ${r.name}`}
+                    className={`${iconBtn} ${
+                      r.status === "rejected"
+                        ? "cursor-not-allowed text-red-600 opacity-40"
+                        : "text-red-600"
+                    }`}
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
+        </div>
 
         {/* PAGINATION */}
-        <div className="flex items-center justify-between px-3 py-2 border-t">
+        <div className="flex items-center justify-between border-t px-3 py-2">
           <div className="text-sm text-muted-foreground">
-            Page {page} of {Math.max(totalPages, 1)}
+            {filtered.length === 0
+              ? "No results"
+              : `Page ${page} of ${totalPages} · ${filtered.length} total`}
           </div>
 
           <div className="flex gap-1">
@@ -317,22 +382,11 @@ function RequestsPage() {
   );
 }
 
-function Info({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
+function Info({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="text-xs text-muted-foreground">
-        {label}
-      </div>
-
-      <div className="font-medium">
-        {value || "-"}
-      </div>
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="font-medium">{value || "-"}</div>
     </div>
   );
 }

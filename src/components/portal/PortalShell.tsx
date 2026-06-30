@@ -142,8 +142,8 @@ export function PortalShell({
   const nav = useNavigate();
   const { theme, toggle } = useTheme();
 
-  const location = useRouterState((s) => s.location);
-  const path = location?.pathname ?? "";
+  const routerState = useRouterState();
+  const path = routerState.location?.pathname ?? "";
 
   const [notifOpen, setNotifOpen] = useState(false);
 

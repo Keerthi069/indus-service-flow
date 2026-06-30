@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import {
   User,
   Mail,
@@ -24,8 +24,8 @@ export const Route = createFileRoute("/org-admin/profile")({
 function OrgAdminProfilePage() {
   const { user } = useAuth();
 
-  const fileInputRef = useRef(null);
-  const [profileImage, setProfileImage] = useState("");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [profileImage, setProfileImage] = useState<string>("");
 
   useEffect(() => {
     if (!user) return;
@@ -35,14 +35,16 @@ function OrgAdminProfilePage() {
 
   if (!user) return null;
 
-  const handleImageUpload = (event) => {
+  const handleImageUpload = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onloadend = () => {
       const imageData = reader.result;
-      setProfileImage(imageData);
-      localStorage.setItem(`profile-image-${user.id}`, imageData);
+      if (typeof imageData === "string") {
+        setProfileImage(imageData);
+        localStorage.setItem(`profile-image-${user.id}`, imageData);
+      }
     };
     reader.readAsDataURL(file);
   };

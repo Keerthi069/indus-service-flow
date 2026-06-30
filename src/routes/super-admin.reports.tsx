@@ -92,7 +92,7 @@ const TOP_TENANTS = [
   { name: "Quantum Labs", plan: "Starter", seats: 7, mrr: 490, status: "paused" },
 ];
 
-const EVENTS = [
+const EVENTS: { type: 'upgrade' | 'new' | 'warn' | 'down' | 'success'; Icon: React.ComponentType<{ className: string }>; label: string; time: string }[] = [
   { type: "upgrade", Icon: ArrowUpCircle, label: "Meridian Health upgraded to Enterprise Plus", time: "2 min ago" },
   { type: "new", Icon: Building2, label: "New org onboarded — Stellaris Corp (32 seats)", time: "14 min ago" },
   { type: "warn", Icon: AlertTriangle, label: "Clearwave Media trial expires in 3 days", time: "1 hr ago" },
@@ -108,17 +108,19 @@ const PLAN_DIST = [
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function fmt(n) {
+function fmt(n: number): string {
   return n >= 1_000_000
     ? "$" + (n / 1_000_000).toFixed(2) + "M"
     : "$" + n.toLocaleString("en-US");
 }
 
-function fmtK(n) {
+function fmtK(n: number): string {
   return n >= 1000 ? "$" + (n / 1000).toFixed(0) + "k" : "$" + n;
 }
 
-function exportCsv(range, data) {
+type CsvRow = { label: string; mrr: number; tenants: number };
+
+function exportCsv(range: string, data: CsvRow[]) {
   const rows = ["period,mrr,tenants", ...data.map((r) => `${r.label},${r.mrr},${r.tenants}`)];
   const blob = new Blob([rows.join("\n")], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
@@ -143,7 +145,7 @@ function LivePill() {
   );
 }
 
-function KpiCard({ label, value, delta, positive, Icon }) {
+function KpiCard({ label, value, delta, positive, Icon }: { label: string; value: string | number; delta: string; positive: boolean; Icon: React.ComponentType<{ className: string }> }) {
   const DeltaIcon = positive ? TrendingUp : TrendingDown;
   return (
     <Card>
@@ -168,8 +170,8 @@ function KpiCard({ label, value, delta, positive, Icon }) {
   );
 }
 
-function StatusBadge({ status }) {
-  const map = {
+function StatusBadge({ status }: { status: 'active' | 'trial' | 'paused' | string }) {
+  const map: Record<string, string> = {
     active: "bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-400 dark:border-green-800",
     trial: "bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-950 dark:text-yellow-400 dark:border-yellow-800",
     paused: "bg-muted text-muted-foreground border-border",
@@ -181,7 +183,7 @@ function StatusBadge({ status }) {
   );
 }
 
-function EventIcon({ type, Icon }) {
+function EventIcon({ type, Icon }: { type: 'upgrade' | 'new' | 'warn' | 'down' | 'success'; Icon: React.ComponentType<{ className: string }> }) {
   const map = {
     upgrade: "bg-green-50 text-green-600 dark:bg-green-950 dark:text-green-400",
     new: "bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
@@ -197,7 +199,7 @@ function EventIcon({ type, Icon }) {
 }
 
 // Custom tooltip for Recharts
-function CustomTooltip({ active, payload, label }) {
+function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: { name: string; value: number; color?: string }[]; label?: string }) {
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-lg border bg-popover px-3 py-2 text-xs shadow-md">
@@ -250,7 +252,7 @@ function DonutChart() {
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 function ReportsPage() {
-  const [range, setRange] = useState("7d");
+  const [range, setRange] = useState<"7d" | "30d" | "90d" | "1y">("7d");
   const [liveMrr, setLiveMrr] = useState(128400);
   const [lastUpdated, setLastUpdated] = useState(new Date());
   const appointments = useDb(() => db.all("appointments"));
@@ -273,7 +275,7 @@ function ReportsPage() {
 
   const alertCount = EVENTS.filter((e) => e.type === "warn" || e.type === "down").length;
 
-  function handleExport(format) {
+  function handleExport(format: "csv" | "excel" | "pdf") {
     if (format === "csv" || format === "excel") exportCsv(range, chartData);
     if (format === "pdf") window.print();
   }
@@ -296,7 +298,7 @@ function ReportsPage() {
             {Object.entries(RANGES).map(([key, { label }]) => (
               <button
                 key={key}
-                onClick={() => setRange(key)}
+                onClick={() => setRange(key as "7d" | "30d" | "90d" | "1y")}
                 className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
                   range === key
                     ? "bg-background shadow-sm text-foreground border"
@@ -339,8 +341,8 @@ function ReportsPage() {
         <Card className="lg:col-span-2">
           <CardHeader className="pb-2 pt-4 px-4">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                MRR &amp; tenant growth — {RANGES[range].label}
+                <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                MRR &amp; tenant growth — {RANGES[range as keyof typeof RANGES].label}
               </CardTitle>
               <div className="flex items-center gap-3 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1.5">

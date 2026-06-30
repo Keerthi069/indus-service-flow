@@ -108,7 +108,62 @@ function toXlsHtml(data: OrgRequest[]) {
   </body></html>`;
 }
 
-function exportData(type: "csv" | "xls", data: OrgRequest[]) {
+function escapePdf(value: string) {
+  return value
+    .replace(/\\/g, "\\\\")
+    .replace(/\(/g, "\\(")
+    .replace(/\)/g, "\\)")
+    .replace(/\r/g, "")
+    .replace(/\n/g, "\\n");
+}
+
+function toPdf(data: OrgRequest[]) {
+  const lines = [
+    "Name | Category | Contact | Email | Status",
+    ...data.map(
+      (r) =>
+        `${r.name} | ${r.category} | ${r.contact_person} | ${r.email} | ${r.status}`,
+    ),
+  ];
+
+  const streamContent = [
+    "BT",
+    "/F1 10 Tf",
+    "40 760 Td",
+    "14 TL",
+    ...lines.map((line, index) => {
+      const escaped = escapePdf(line);
+      return index === 0 ? `(${escaped}) Tj` : `T* (${escaped}) Tj`;
+    }),
+    "ET",
+  ].join("\n");
+
+  const streamLength = new TextEncoder().encode(streamContent).length;
+
+  const header = "%PDF-1.4\n";
+  const objects = [
+    `1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n`,
+    `2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n`,
+    `3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>\nendobj\n`,
+    `4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n`,
+    `5 0 obj\n<< /Length ${streamLength} >>\nstream\n${streamContent}\nendstream\nendobj\n`,
+  ];
+
+  let offset = new TextEncoder().encode(header).length;
+  const xrefEntries = ["0000000000 65535 f "];
+
+  for (const obj of objects) {
+    xrefEntries.push(`${String(offset).padStart(10, "0")} 00000 n `);
+    offset += new TextEncoder().encode(obj).length;
+  }
+
+  const body = header + objects.join("");
+  const xref = `xref\n0 ${xrefEntries.length}\n${xrefEntries.join("\n")}\ntrailer\n<< /Size ${xrefEntries.length} /Root 1 0 R >>\nstartxref\n${offset}\n%%EOF`;
+
+  return body + xref;
+}
+
+function exportData(type: "csv" | "xls" | "pdf", data: OrgRequest[]) {
   if (data.length === 0) {
     toast.error("Nothing to export for the current filter.");
     return;
@@ -120,6 +175,10 @@ function exportData(type: "csv" | "xls", data: OrgRequest[]) {
 
   if (type === "xls") {
     download("requests.xls", "application/vnd.ms-excel", toXlsHtml(data));
+  }
+
+  if (type === "pdf") {
+    download("requests.pdf", "application/pdf", toPdf(data));
   }
 
   toast.success(`Exported ${type.toUpperCase()}`);

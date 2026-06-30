@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useRef, useState, type ChangeEvent } from "react";
 import {
   User,
   Mail,
@@ -35,14 +35,20 @@ const ADMIN = {
 };
 
 function SuperAdminProfilePage() {
-  const fileInputRef = useRef(null);
-  const [profileImage, setProfileImage] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [profileImage, setProfileImage] = useState<string | null>("");
 
-  const handleImageUpload = (event) => {
+  const handleImageUpload = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onloadend = () => setProfileImage(reader.result);
+    reader.onloadend = () => {
+      if (typeof reader.result === "string") {
+        setProfileImage(reader.result);
+      } else {
+        setProfileImage(null);
+      }
+    };
     reader.readAsDataURL(file);
   };
 

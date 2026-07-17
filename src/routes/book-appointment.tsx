@@ -700,6 +700,17 @@ function BookAppointment() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-sky-100 py-10 px-4">
+      {/* Home — pinned to the page's top-left corner, same placement/style
+         as the confirmation screen's nav bar, so it's available throughout
+         the booking flow (steps 1–3), not just after confirming. */}
+      <div className="fixed left-4 top-4 z-10">
+        <Button asChild variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-foreground">
+          <Link to="/">
+            <Home className="h-4 w-4" /> Home
+          </Link>
+        </Button>
+      </div>
+
       <div className="mx-auto max-w-2xl">
         <div className="mb-8 text-center">
           <span className="text-xs font-semibold uppercase tracking-widest text-teal-600">Public booking</span>

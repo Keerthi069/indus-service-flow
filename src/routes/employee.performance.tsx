@@ -1,15 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import {
-  CartesianGrid,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { useMemo } from "react";
 
-import { Trophy, Star, Target, Users, Clock, CheckCircle } from "lucide-react";
+import { Trophy, Star, Target, Clock, CheckCircle } from "lucide-react";
 
 import { PageHeader, Kpi } from "@/components/portal/PortalShell";
 import {
@@ -18,106 +10,137 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useAuth } from "@/lib/auth";
+import { useHydrated, db } from "@/lib/mock/db";
+import {
+  useEmployeeQueueData,
+  computeEmployeePerformanceScore,
+  statusFromScore,
+} from "../lib/employee-queue";
 
 export const Route = createFileRoute("/employee/performance")({
   component: PerfPage,
 });
 
-// Realistic hospital employee performance data
-const rating = [
-  { w: "W1", r: 4.3 },
-  { w: "W2", r: 4.4 },
-  { w: "W3", r: 4.5 },
-  { w: "W4", r: 4.4 },
-  { w: "W5", r: 4.6 },
-  { w: "W6", r: 4.7 },
-  { w: "W7", r: 4.8 },
-  { w: "W8", r: 4.7 },
-  { w: "W9", r: 4.8 },
-  { w: "W10", r: 4.9 },
-  { w: "W11", r: 4.8 },
-  { w: "W12", r: 4.9 },
-];
+// Category copy only (labels), no numbers — every number below is
+// computed from real appointments/feedback via useEmployeeQueueData and
+// computeEmployeePerformanceScore, the same functions Dashboard and My
+// Queue use, so this page can no longer disagree with them.
+type IndustryConfig = {
+  waitTimeLabel: string;
+  completionLabel: string;
+};
 
-const patients = [
-  { w: "W1", n: 48 },
-  { w: "W2", n: 52 },
-  { w: "W3", n: 55 },
-  { w: "W4", n: 50 },
-  { w: "W5", n: 58 },
-  { w: "W6", n: 60 },
-  { w: "W7", n: 64 },
-  { w: "W8", n: 62 },
-  { w: "W9", n: 66 },
-  { w: "W10", n: 68 },
-  { w: "W11", n: 70 },
-  { w: "W12", n: 72 },
-];
+const INDUSTRY_PRESETS: Record<string, IndustryConfig> = {
+  hospitals: { waitTimeLabel: "Avg Wait Time", completionLabel: "Treatment Completion" },
+  clinics: { waitTimeLabel: "Avg Wait Time", completionLabel: "Treatment Completion" },
+  banks: { waitTimeLabel: "Avg Wait Time", completionLabel: "Transaction Completion" },
+  retail: { waitTimeLabel: "Avg Service Time", completionLabel: "Order Completion" },
+  support: { waitTimeLabel: "Avg Response Time", completionLabel: "Ticket Completion" },
+  default: { waitTimeLabel: "Avg Wait Time", completionLabel: "Completion Rate" },
+};
 
-const volume = [
-  { w: "W1", c: 82 },
-  { w: "W2", c: 88 },
-  { w: "W3", c: 91 },
-  { w: "W4", c: 90 },
-  { w: "W5", c: 94 },
-  { w: "W6", c: 96 },
-  { w: "W7", c: 98 },
-  { w: "W8", c: 95 },
-  { w: "W9", c: 97 },
-  { w: "W10", c: 99 },
-  { w: "W11", c: 98 },
-  { w: "W12", c: 100 },
-];
-
-function Progress({
-  label,
-  value,
-}: {
-  label: string;
-  value: number;
-}) {
+function Progress({ label, value }: { label: string; value: number }) {
   return (
     <div>
       <div className="mb-1 flex items-center justify-between text-sm">
         <span>{label}</span>
         <span className="font-medium">{value}%</span>
       </div>
-
       <div className="h-2 overflow-hidden rounded-full bg-muted">
-        <div
-          className="h-full rounded-full bg-primary transition-all"
-          style={{ width: `${value}%` }}
-        />
+        <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${value}%` }} />
       </div>
     </div>
   );
 }
 
 function PerfPage() {
+  const { user } = useAuth();
+  const hydrated = useHydrated();
+
+  const {
+    employee,
+    org,
+    categoryId,
+    labels,
+    completedToday,
+    avgHandlingTime,
+    avgWaitTimeEstimate,
+    satisfaction,
+    satisfactionSampleSize,
+    allAppointments,
+    allFeedback,
+  } = useEmployeeQueueData(user);
+
+  const cfg = INDUSTRY_PRESETS[categoryId] ?? INDUSTRY_PRESETS.default;
+
+  // Real, deterministic performance score — computed from actual
+  // completed/cancelled counts and actual feedback ratings, not a random
+  // per-user hash.
+  const myScore = useMemo(() => {
+    if (!employee) return null;
+    return computeEmployeePerformanceScore((employee as any).id, allAppointments, allFeedback);
+  }, [employee, allAppointments, allFeedback]);
+
+  // Real department ranking: score every colleague at the SAME
+  // organization with the exact same formula and find this employee's
+  // percentile.
+  const ranking = useMemo(() => {
+    if (!employee || !org) return null;
+    const colleagues = (db.all("employees") as any[]).filter((e) => e.organization_id === (org as any).id);
+    const scored = colleagues.map((e) => ({
+      id: e.id,
+      score: computeEmployeePerformanceScore(e.id, allAppointments, allFeedback).score,
+    }));
+    scored.sort((a, b) => b.score - a.score);
+    const position = scored.findIndex((s) => s.id === (employee as any).id) + 1;
+    const percentile = scored.length ? Math.round((position / scored.length) * 100) : 100;
+    return { position, of: scored.length, percentile };
+  }, [employee, org, allAppointments, allFeedback]);
+
+  if (!hydrated) {
+    return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
+  }
+
+  if (!user || !employee || !myScore) {
+    return (
+      <div className="p-6 text-sm text-muted-foreground">
+        You need to be signed in as an employee to view performance data.
+      </div>
+    );
+  }
+
+  const status = statusFromScore(myScore.score);
+
+  // Rule-based achievements from real thresholds — not a random pool.
+  const achievements: string[] = [];
+  if (satisfaction != null && satisfaction >= 4.5) achievements.push(`Consistently high ${labels.entity.toLowerCase()} satisfaction`);
+  if (myScore.completionRate >= 95 && myScore.cancelledCount + myScore.completedCount > 0)
+    achievements.push(`${myScore.completionRate}% completion rate this period`);
+  if (completedToday.length > 0) achievements.push(`${completedToday.length} ${labels.entityPlural.toLowerCase()} completed today`);
+  if (!achievements.length) achievements.push("Keep completing appointments to unlock achievements");
+
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Performance Overview"
-        subtitle="Track your productivity, service quality, and patient satisfaction."
+        title={`${(employee as any).name}'s Performance`}
+        subtitle={`${(org as any)?.name ?? "Your organization"} · Real-time metrics from today's queue and all-time appointment history.`}
       />
 
-      {/* KPIs */}
+      {/* KPIs — Customers Served Today matches Dashboard exactly */}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <Kpi label="Performance Score" value="94/100" />
-        <Kpi label="Patients Served" value="412" />
-        <Kpi label="On-Time Rate" value="92%" /> 
+        <Kpi label="Performance Score" value={`${myScore.score}/100`} />
+        <Kpi label={`${labels.entityPlural} Served Today`} value={String(completedToday.length)} />
+        <Kpi label={`${labels.entityPlural} Served (All-Time)`} value={String(myScore.completedCount)} />
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-       
         <Card>
           <CardContent className="flex items-center gap-3 p-5">
             <Clock className="h-8 w-8 text-primary" />
             <div>
-              <p className="text-2xl font-bold">11 min</p>
-              <p className="text-sm text-muted-foreground">
-                Avg Wait Time
-              </p>
+              <p className="text-2xl font-bold">{avgWaitTimeEstimate} min</p>
+              <p className="text-sm text-muted-foreground">{cfg.waitTimeLabel} (est.)</p>
             </div>
           </CardContent>
         </Card>
@@ -126,9 +149,9 @@ function PerfPage() {
           <CardContent className="flex items-center gap-3 p-5">
             <Star className="h-8 w-8 text-primary" />
             <div>
-              <p className="text-2xl font-bold">4.8</p>
+              <p className="text-2xl font-bold">{satisfaction != null ? satisfaction.toFixed(1) : "—"}</p>
               <p className="text-sm text-muted-foreground">
-                Satisfaction Score
+                Satisfaction Score {satisfactionSampleSize ? `(${satisfactionSampleSize} reviews)` : "(no reviews yet)"}
               </p>
             </div>
           </CardContent>
@@ -138,49 +161,46 @@ function PerfPage() {
           <CardContent className="flex items-center gap-3 p-5">
             <CheckCircle className="h-8 w-8 text-primary" />
             <div>
-              <p className="text-2xl font-bold">97%</p>
-              <p className="text-sm text-muted-foreground">
-                Resolution Rate
-              </p>
+              <p className="text-2xl font-bold">{avgHandlingTime != null ? `${avgHandlingTime}m` : "—"}</p>
+              <p className="text-sm text-muted-foreground">Average Handling Time (today, completed only)</p>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Summary */}
       <div className="grid gap-4 lg:grid-cols-3">
         <Card>
           <CardHeader>
             <CardTitle>Performance Summary</CardTitle>
           </CardHeader>
-
           <CardContent>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span>Overall Status</span>
-                <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
-                  Excellent
+                <span className={`rounded-full px-3 py-1 text-xs font-medium ${status.className}`}>
+                  {status.label}
                 </span>
               </div>
-
               <div className="flex items-center justify-between">
                 <span>Department Ranking</span>
-                <span className="font-medium">Top 10%</span>
+                <span className="font-medium">
+                  {ranking ? `#${ranking.position} of ${ranking.of} (top ${ranking.percentile}%)` : "—"}
+                </span>
               </div>
-
               <div className="flex items-center justify-between">
-                <span>Escalations</span>
-                <span className="font-medium">2</span>
+                <span>Completion Rate (all-time)</span>
+                <span className="font-medium">{myScore.completionRate}%</span>
               </div>
-
               <div className="flex items-center justify-between">
-                <span>Shift Attendance</span>
-                <span className="font-medium">98%</span>
+                <span>Cancelled (all-time)</span>
+                <span className="font-medium">{myScore.cancelledCount}</span>
               </div>
-
               <div className="flex items-center justify-between">
                 <span>Last Updated</span>
-                <span className="font-medium">Today 10:45 AM</span>
+                <span className="font-medium">
+                  Today{" "}
+                  {new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                </span>
               </div>
             </div>
           </CardContent>
@@ -188,14 +208,12 @@ function PerfPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Monthly Goal Progress</CardTitle>
+            <CardTitle>Goal Progress</CardTitle>
           </CardHeader>
-
           <CardContent className="space-y-5">
-            <Progress label="Patients Served" value={82} />
-            <Progress label="Patient Satisfaction" value={96} />
-            <Progress label="Treatment Completion" value={93} />
-            <Progress label="Follow-up Compliance" value={88} />
+            <Progress label={`${labels.entityPlural} Served Today`} value={Math.min(100, completedToday.length * 10)} />
+            <Progress label={`${labels.entity} Satisfaction`} value={satisfaction != null ? Math.round((satisfaction / 5) * 100) : 0} />
+            <Progress label={cfg.completionLabel} value={myScore.completionRate} />
           </CardContent>
         </Card>
 
@@ -203,115 +221,20 @@ function PerfPage() {
           <CardHeader>
             <CardTitle>Recent Achievements</CardTitle>
           </CardHeader>
-
           <CardContent>
             <div className="space-y-4">
-              <div className="flex items-start gap-3">
-                <Trophy className="mt-0.5 h-4 w-4 text-yellow-500" />
-                <span className="text-sm">
-                  Top Performer of the Month
-                </span>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <Star className="mt-0.5 h-4 w-4 text-amber-500" />
-                <span className="text-sm">
-                  Maintained 4.8+ rating for 12 weeks
-                </span>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <Target className="mt-0.5 h-4 w-4 text-green-500" />
-                <span className="text-sm">
-                  Exceeded monthly patient target
-                </span>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <CheckCircle className="mt-0.5 h-4 w-4 text-blue-500" />
-                <span className="text-sm">
-                  97% first-time resolution rate
-                </span>
-              </div>
+              {achievements.map((a, i) => {
+                const icons = [Trophy, Star, Target, CheckCircle];
+                const colors = ["text-yellow-500", "text-amber-500", "text-green-500", "text-blue-500"];
+                const Icon = icons[i % icons.length];
+                return (
+                  <div key={a} className="flex items-start gap-3">
+                    <Icon className={`mt-0.5 h-4 w-4 ${colors[i % colors.length]}`} />
+                    <span className="text-sm">{a}</span>
+                  </div>
+                );
+              })}
             </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Charts */}
-      <div className="grid gap-4 xl:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle>Patient Rating Trend</CardTitle>
-          </CardHeader>
-
-          <CardContent className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={rating}>
-                <CartesianGrid vertical={false} opacity={0.15} />
-                <XAxis dataKey="w" />
-                <YAxis domain={[4, 5]} />
-                <Tooltip />
-
-                <Line
-                  type="monotone"
-                  dataKey="r"
-                  stroke="var(--primary)"
-                  strokeWidth={3}
-                  dot={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Patients Served</CardTitle>
-          </CardHeader>
-
-          <CardContent className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={patients}>
-                <CartesianGrid vertical={false} opacity={0.15} />
-                <XAxis dataKey="w" />
-                <YAxis />
-                <Tooltip />
-
-                <Line
-                  type="monotone"
-                  dataKey="n"
-                  stroke="var(--secondary)"
-                  strokeWidth={3}
-                  dot={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Service Quality Index</CardTitle>
-          </CardHeader>
-
-          <CardContent className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={volume}>
-                <CartesianGrid vertical={false} opacity={0.15} />
-                <XAxis dataKey="w" />
-                <YAxis />
-                <Tooltip />
-
-                <Line
-                  type="monotone"
-                  dataKey="c"
-                  stroke="var(--chart-3)"
-                  strokeWidth={3}
-                  dot={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>

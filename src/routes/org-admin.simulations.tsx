@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Download, Play, RefreshCw, Plus, ArrowRight,FileSpreadsheet, FileText, File } from "lucide-react";
+import { Download, Play, RefreshCw, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -17,6 +17,10 @@ import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
+import CsvLogo from "@/assets/csv.png";
+import ExcelLogo from "@/assets/excel.png";
+import PdfLogo from "@/assets/pdf.png";
+
 import {
   ResponsiveContainer, LineChart, Line, AreaChart, Area,
   CartesianGrid, XAxis, YAxis, Tooltip,
@@ -27,45 +31,120 @@ export const Route = createFileRoute("/org-admin/simulations")({ component: Page
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type HourlyPoint = {
-  idle: number; h: number; avgWait: number; maxQueue: number; utilization: number ;
+  h: number; avgWait: number; maxQueue: number; utilization: number; idle: number;
 };
-type SimRecord   = { id: number; date: string };
-type Kpis        = { total: number; served: number; avgWait: number; maxWait: number; queue: number; util: number ;  idle: number;
+type SimRecord = { id: number; date: string };
+type Kpis = {
+  total: number; served: number; avgWait: number; maxWait: number;
+  queue: number; util: number; idle: number; abandoned: number;
 };
+
+const DEFAULT_RUNS = 200;
+const DEFAULT_ARR_PROB = 0.7;
+const DEFAULT_SRV_PROB = 0.85;
+const DEFAULT_HORIZON = "8";
 
 // ─── Simulation engine ────────────────────────────────────────────────────────
+//
+// A real (if simplified) queueing model instead of unrelated random numbers,
+// so the control panel sliders actually drive the results, and the KPI cards
+// are aggregated straight from the same hourly series the charts render —
+// meaning the two can never disagree with each other.
+//
+// utilization (rho) = arrival rate / service rate (classic M/M/1 ratio)
+// avg queue length  = rho^2 / (1 - rho)                      (M/M/1 Lq)
+// avg wait time     = queue length / arrival rate             (Little's Law)
 
-function genHourlyData(horizon: number): HourlyPoint[] {
-  return Array.from({ length: horizon }, (_, i) => {
-    const utilization = +(35 + Math.random() * 45).toFixed(1);
-
-    return {
-      h: i + 1,
-      avgWait: +(30 + Math.random() * 45).toFixed(1),
-      maxQueue: +(4 + Math.random() * 22).toFixed(1),
-      utilization,
-      idle: +(100 - utilization).toFixed(1),
-    };
-  });
+// Deterministic pseudo-random noise in [-spread, +spread], so re-running the
+// same inputs is reproducible but a fresh `seedOffset` (bumped every time the
+// user clicks "Run simulation") still gives natural run-to-run variation,
+// the way repeated Monte Carlo trials would.
+function seededNoise(seed: number, spread: number): number {
+  const x = Math.sin(seed * 12.9898) * 43758.5453;
+  const frac = x - Math.floor(x);
+  return (frac - 0.5) * 2 * spread;
 }
 
-function randomKpis(): Kpis {
-  const total = Math.round(900 + Math.random() * 500);
+function simulate(
+  runs: number,
+  arrProb: number,
+  srvProb: number,
+  horizon: number,
+  seedOffset = 0
+): { hourly: HourlyPoint[]; kpis: Kpis } {
+  const safeArr = Math.min(0.98, Math.max(0.02, arrProb));
+  const safeSrv = Math.min(0.98, Math.max(0.02, srvProb));
+  const rho = Math.min(0.96, safeArr / safeSrv);
 
-  const util = Math.round(55 + Math.random() * 35);
+  const baseArrivalsPerHour = runs / horizon;
+  // Capacity sized so that, at steady arrivals, utilization lands on rho —
+  // consistent with how the slider ratio is meant to read.
+  const serviceCapacityPerHour = Math.max(1, Math.round(baseArrivalsPerHour / rho));
+
+  // Customers only abandon (balk/renege) once the system is genuinely
+  // overloaded (rho > 0.5); below that, everyone who doesn't get served
+  // this hour simply stays in the queue for the next one — nobody
+  // disappears unaccounted for.
+  const abandonFraction = Math.max(0, (rho - 0.5) * 0.18);
+
+  let carryQueue = 0;
+  let totalArrivals = 0;
+  let totalServed = 0;
+  let totalAbandoned = 0;
+
+  const hourly: HourlyPoint[] = [];
+
+  for (let i = 0; i < horizon; i++) {
+    const noise = seededNoise(i * 7 + seedOffset, Math.max(1, baseArrivalsPerHour * 0.15));
+    const arrivals = Math.max(0, Math.round(baseArrivalsPerHour + noise));
+    totalArrivals += arrivals;
+
+    const available = carryQueue + arrivals; // everyone waiting to be handled this hour
+    const servedThisHour = Math.min(available, serviceCapacityPerHour);
+    const afterService = available - servedThisHour;
+    const abandonedThisHour = Math.round(afterService * abandonFraction);
+    const nextQueue = afterService - abandonedThisHour;
+
+    totalServed += servedThisHour;
+    totalAbandoned += abandonedThisHour;
+
+    const utilization = +Math.min(100, (servedThisHour / serviceCapacityPerHour) * 100).toFixed(1);
+    // Little's Law: avg wait ≈ avg customers in system this hour / throughput.
+    const avgWait = +Math.max(2, ((carryQueue + nextQueue) / 2 / serviceCapacityPerHour) * 60).toFixed(1);
+
+    hourly.push({
+      h: i + 1,
+      avgWait,
+      maxQueue: available,
+      utilization,
+      idle: +(100 - utilization).toFixed(1),
+    });
+
+    carryQueue = nextQueue;
+  }
+
+  const avgWait = +(hourly.reduce((s, p) => s + p.avgWait, 0) / hourly.length).toFixed(1);
+  const maxWait = +Math.max(...hourly.map((p) => p.avgWait)).toFixed(1);
+  const util = Math.round(hourly.reduce((s, p) => s + p.utilization, 0) / hourly.length);
   const idle = 100 - util;
 
+  // By construction: totalArrivals === totalServed + carryQueue + totalAbandoned.
   return {
-    total,
-    served: Math.round(total * (0.82 + Math.random() * 0.12)),
-    avgWait: +(10 + Math.random() * 18).toFixed(1),
-    maxWait: +(50 + Math.random() * 50).toFixed(1),
-    queue: Math.round(8 + Math.random() * 20),
-    util,
-    idle,
+    hourly,
+    kpis: {
+      total: totalArrivals,
+      served: totalServed,
+      queue: carryQueue,
+      abandoned: totalAbandoned,
+      avgWait,
+      maxWait,
+      util,
+      idle,
+    },
   };
 }
 
+const INITIAL_SIM = simulate(DEFAULT_RUNS, DEFAULT_ARR_PROB, DEFAULT_SRV_PROB, 8, 0);
 
 function nowLabel(): string {
   const d = new Date();
@@ -73,6 +152,21 @@ function nowLabel(): string {
   const hh = d.getHours() % 12 || 12;
   const mm = d.getMinutes().toString().padStart(2, "0");
   return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}, ${hh}:${mm} ${d.getHours() >= 12 ? "PM" : "AM"}`;
+}
+
+// Compares the current value against the previous run's value for the same
+// metric and returns a real, computed delta — replacing the old hardcoded
+// "↑ 12.5% vs last run" strings that never actually changed.
+// `lowerIsBetter` controls whether a decrease should render green (good) or
+// red (bad) — e.g. a drop in wait time is good, but a drop in customers
+// served is bad.
+function computeDelta(curr: number, prev: number | null, lowerIsBetter: boolean): { text: string; up: boolean } {
+  if (prev == null || prev === 0) return { text: "Baseline run", up: true };
+  const changePct = ((curr - prev) / prev) * 100;
+  const increased = changePct >= 0;
+  const isGood = lowerIsBetter ? !increased : increased;
+  const arrow = increased ? "↑" : "↓";
+  return { text: `${arrow} ${Math.abs(changePct).toFixed(1)}% vs last run`, up: isGood };
 }
 
 // ─── Small pieces ─────────────────────────────────────────────────────────────
@@ -142,98 +236,126 @@ function ChartTooltip({ active, payload, label }: any) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 function Page() {
-  const [runs,    setRuns]    = useState([200]);
-  const [arrProb, setArrProb] = useState([0.70]);
-  const [srvProb, setSrvProb] = useState([0.85]);
-  const [horizon, setHorizon] = useState("8");
+  const [runs,    setRuns]    = useState([DEFAULT_RUNS]);
+  const [arrProb, setArrProb] = useState([DEFAULT_ARR_PROB]);
+  const [srvProb, setSrvProb] = useState([DEFAULT_SRV_PROB]);
+  const [horizon, setHorizon] = useState(DEFAULT_HORIZON);
 
-  const [hourly,  setHourly]  = useState<HourlyPoint[]>(() => genHourlyData(8));
-  const [kpis,    setKpis]    = useState<Kpis>({ total:1248, served:1078, avgWait:18.6, maxWait:82.4, queue:22, util:72 , idle: 28 });
+  const [hourly,   setHourly]   = useState<HourlyPoint[]>(INITIAL_SIM.hourly);
+  const [kpis,     setKpis]     = useState<Kpis>(INITIAL_SIM.kpis);
+  const [prevKpis, setPrevKpis] = useState<Kpis | null>(null);
+  const [runSeed,  setRunSeed]  = useState(0);
+
   const [history, setHistory] = useState<SimRecord[]>([
     { id: 200, date: "27 Jun 2026, 11:45 AM" },
     { id: 199, date: "27 Jun 2026, 10:30 AM" },
     { id: 198, date: "26 Jun 2026, 05:15 PM" },
   ]);
 
+  // Live clock for the "last simulation results" timestamp in the top bar
+  const [nowDisplay, setNowDisplay] = useState<string>(() => nowLabel());
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNowDisplay(nowLabel());
+    }, 30_000); // refresh every 30s, label itself is minute-precision
+    return () => clearInterval(interval);
+  }, []);
+
   function handleRun() {
-    const h = Math.max(1, parseInt(horizon) || 8);
-    setHourly(genHourlyData(h));
-    const k = randomKpis();
-    setKpis(k);
+    const h = Math.max(1, Math.min(24, parseInt(horizon) || 8));
+    const nextSeed = runSeed + 1;
+    const { hourly: newHourly, kpis: newKpis } = simulate(runs[0], arrProb[0], srvProb[0], h, nextSeed);
+
+    setPrevKpis(kpis);
+    setHourly(newHourly);
+    setKpis(newKpis);
+    setRunSeed(nextSeed);
     setHistory((prev) => [{ id: prev[0].id + 1, date: nowLabel() }, ...prev]);
     toast.success("Simulation complete");
   }
 
   function handleReset() {
-    setRuns([200]); setArrProb([0.70]); setSrvProb([0.85]); setHorizon("8");
-    setHourly(genHourlyData(8)); setKpis({ total:1248, served:1078, avgWait:18.6, maxWait:82.4, queue:22, util:72, idle: 28 });
+    setRuns([DEFAULT_RUNS]);
+    setArrProb([DEFAULT_ARR_PROB]);
+    setSrvProb([DEFAULT_SRV_PROB]);
+    setHorizon(DEFAULT_HORIZON);
+    setPrevKpis(null);
+    setRunSeed(0);
+    setHourly(INITIAL_SIM.hourly);
+    setKpis(INITIAL_SIM.kpis);
   }
 
   const utilColor = kpis.util >= 80 ? "text-orange-500" : kpis.util >= 60 ? "text-yellow-500" : "text-teal-500";
   const utilLabel = kpis.util >= 80 ? "High" : kpis.util >= 60 ? "Medium" : "Low";
 
-const exportCSV = () => {
-  const data = hourly.map((item) => ({
-    Hour: item.h,
-    "Avg Wait": item.avgWait,
-    "Max Queue": item.maxQueue,
-    Utilization: item.utilization,
-    idle: item.idle,
-  }));
+  // Deltas computed against the actual previous run instead of hardcoded strings.
+  const totalDelta   = computeDelta(kpis.total, prevKpis?.total ?? null, false);
+  const servedDelta  = computeDelta(kpis.served, prevKpis?.served ?? null, false);
+  const avgWaitDelta = computeDelta(kpis.avgWait, prevKpis?.avgWait ?? null, true);
+  const maxWaitDelta = computeDelta(kpis.maxWait, prevKpis?.maxWait ?? null, true);
+  const queueDelta   = computeDelta(kpis.queue, prevKpis?.queue ?? null, true);
+  const idleDelta    = computeDelta(kpis.idle, prevKpis?.idle ?? null, true);
+  const utilDelta    = computeDelta(kpis.util, prevKpis?.util ?? null, false);
+  const abandonedDelta = computeDelta(kpis.abandoned, prevKpis?.abandoned ?? null, true);
 
-  const ws = XLSX.utils.json_to_sheet(data);
-  const csv = XLSX.utils.sheet_to_csv(ws);
+  const exportCsv = () => {
+    const data = hourly.map((item) => ({
+      Hour: item.h,
+      "Avg Wait": item.avgWait,
+      "Max Queue": item.maxQueue,
+      Utilization: item.utilization,
+      idle: item.idle,
+    }));
 
-  const blob = new Blob([csv], {
-    type: "text/csv;charset=utf-8;",
-  });
+    const ws = XLSX.utils.json_to_sheet(data);
+    const csv = XLSX.utils.sheet_to_csv(ws);
 
-  const url = window.URL.createObjectURL(blob);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = window.URL.createObjectURL(blob);
 
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "simulation-results.csv";
-  link.click();
-};
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "simulation-results.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
-const exportExcel = () => {
-  const data = hourly.map((item) => ({
-    Hour: item.h,
-    "Avg Wait": item.avgWait,
-    "Max Queue": item.maxQueue,
-    Utilization: item.utilization,
-    idle: item.idle,  
-  }));
+  const exportExcel = () => {
+    const data = hourly.map((item) => ({
+      Hour: item.h,
+      "Avg Wait": item.avgWait,
+      "Max Queue": item.maxQueue,
+      Utilization: item.utilization,
+      idle: item.idle,
+    }));
 
-  const workbook = XLSX.utils.book_new();
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Simulation");
+    XLSX.writeFile(workbook, "simulation-results.xlsx");
+  };
 
-  const worksheet = XLSX.utils.json_to_sheet(data);
+  const exportPDF = () => {
+    const doc = new jsPDF();
 
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Simulation");
+    doc.setFontSize(16);
+    doc.text("Monte Carlo Simulation Report", 14, 15);
 
-  XLSX.writeFile(workbook, "simulation-results.xlsx");
-};
+    autoTable(doc, {
+      startY: 25,
+      head: [["Hour", "Avg Wait", "Max Queue", "idle", "Utilization"]],
+      body: hourly.map((item) => [
+        item.h,
+        item.avgWait,
+        item.maxQueue,
+        `${item.idle}%`,
+        `${item.utilization}%`,
+      ]),
+    });
 
-const exportPDF = () => {
-  const doc = new jsPDF();
-
-  doc.setFontSize(16);
-  doc.text("Monte Carlo Simulation Report", 14, 15);
-
-  autoTable(doc, {
-    startY: 25,
-    head: [["Hour", "Avg Wait", "Max Queue","idle" ,"Utilization"]],
-    body: hourly.map((item) => [
-      item.h,
-      item.avgWait,
-      item.maxQueue,
-      `${item.idle}%`,
-      `${item.utilization}%`,
-    ]),
-  });
-
-  doc.save("simulation-report.pdf");
-};
+    doc.save("simulation-report.pdf");
+  };
 
   // Bigger axis text
   const axisProps = {
@@ -245,70 +367,64 @@ const exportPDF = () => {
   return (
     <div className="space-y-4">
 
-      {/* ── Top bar ── */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <span className="text-sm text-muted-foreground font-medium">Last simulation results</span>
-        <div className="flex items-center gap-2.5">
-          <div className="flex items-center gap-2 px-3.5 py-2 rounded-lg border border-border text-sm text-muted-foreground">
-            📅 27 Jun 2026, 11:45 AM
-          </div>
-          <DropdownMenu>
-  <DropdownMenuTrigger asChild>
-    <Button
-      variant="outline"
-      size="sm"
-      className="text-sm h-9 gap-2 px-4"
-    >
-      <Download className="h-4 w-4" />
-      Export
-    </Button>
-  </DropdownMenuTrigger>
+      <PageHeader
+        title="Simulations"
+        subtitle="Run Monte Carlo simulations to forecast queue load and staffing needs."
+        actions={
+          <>
+            <div className="flex items-center gap-2 px-3.5 py-2 rounded-lg border border-border text-sm text-muted-foreground whitespace-nowrap">
+              📅 {nowDisplay}
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9 gap-2 px-3">
+                  <Download className="h-3.5 w-3.5" />
+                  Export
+                </Button>
+              </DropdownMenuTrigger>
 
-  <DropdownMenuContent align="end" className="w-44">
-    <DropdownMenuItem onClick={exportCSV}>
-      <File className="mr-2 h-4 w-4" />
-      CSV
-    </DropdownMenuItem>
+              <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuItem onClick={exportCsv} className="gap-2">
+                  <img src={CsvLogo} alt="CSV" className="h-5 w-5 object-contain" />
+                  CSV
+                </DropdownMenuItem>
 
-    <DropdownMenuItem onClick={exportExcel}>
-      <FileSpreadsheet className="mr-2 h-4 w-4" />
-      Excel
-    </DropdownMenuItem>
+                <DropdownMenuItem onClick={exportExcel} className="gap-2">
+                  <img src={ExcelLogo} alt="Excel" className="h-5 w-5 object-contain" />
+                  Excel
+                </DropdownMenuItem>
 
-    <DropdownMenuItem onClick={exportPDF}>
-      <FileText className="mr-2 h-4 w-4" />
-      PDF
-    </DropdownMenuItem>
-  </DropdownMenuContent>
-</DropdownMenu>
-        </div>
-      </div>
+                <DropdownMenuItem onClick={exportPDF} className="gap-2">
+                  <img src={PdfLogo} alt="PDF" className="h-5 w-5 object-contain" />
+                  PDF
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
+        }
+      />
 
-      {/* ── 6-col KPI row ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: 10 }}>
-        <KpiCard label="Total customers"  value={kpis.total.toLocaleString()} delta="↑ 12.5% vs last run" up />
-        <KpiCard label="Customers served" value={kpis.served.toLocaleString()} delta="↑ 10.8% vs last run" up />
-        <KpiCard label="Avg waiting time" value={<>{kpis.avgWait} <span className="text-base font-normal">min</span></>} delta="↓ 5.2% vs last run" up={false} />
-        <KpiCard label="Max waiting time" value={<>{kpis.maxWait} <span className="text-base font-normal">min</span></>} delta="↓ 8.7% vs last run" up={false} />
-        <KpiCard label="Current queue"    value={kpis.queue} delta="↑ 15.8% vs last run" up />
+      {/* ── KPI row ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-3">
+        <KpiCard label="Total customers"  value={kpis.total.toLocaleString()} delta={totalDelta.text} up={totalDelta.up} />
+        <KpiCard label="Customers served" value={kpis.served.toLocaleString()} delta={servedDelta.text} up={servedDelta.up} />
+        <KpiCard label="Currently waiting" value={kpis.queue.toLocaleString()} delta={queueDelta.text} up={queueDelta.up} />
+        <KpiCard label="Left without service" value={kpis.abandoned.toLocaleString()} delta={abandonedDelta.text} up={abandonedDelta.up} />
+        <KpiCard label="Avg waiting time" value={<>{kpis.avgWait} <span className="text-base font-normal">min</span></>} delta={avgWaitDelta.text} up={avgWaitDelta.up} />
+        <KpiCard label="Max waiting time" value={<>{kpis.maxWait} <span className="text-base font-normal">min</span></>} delta={maxWaitDelta.text} up={maxWaitDelta.up} />
         <KpiCard
-  label="Idle Time"
-  value={
-    <>
-      {kpis.idle}
-      <span className="text-base font-normal">%</span>
-    </>
-  }
-  delta="↓ 8.3% vs last run"
-  up={false}
-/>
+          label="Idle Time"
+          value={<>{kpis.idle}<span className="text-base font-normal">%</span></>}
+          delta={idleDelta.text}
+          up={idleDelta.up}
+        />
         {/* Utilization — ring card */}
-        <div className="glass rounded-xl p-4 min-w-0">
+        <div className="glass rounded-xl p-4 min-w-0 col-span-2 sm:col-span-1">
           <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2 font-medium">Utilization</p>
           <div className="flex items-center justify-between gap-2">
             <div>
               <p className={`text-xl font-semibold ${utilColor}`}>{utilLabel}</p>
-              <p className="text-xs text-emerald-600 mt-1.5 font-medium">↑ 8.3% vs last run</p>
+              <p className={`text-xs mt-1.5 font-medium ${utilDelta.up ? "text-emerald-600" : "text-red-500"}`}>{utilDelta.text}</p>
             </div>
             <div className="relative flex-shrink-0">
               <UtilRing pct={kpis.util} />
@@ -317,12 +433,16 @@ const exportPDF = () => {
           </div>
         </div>
       </div>
+      <p className="text-xs text-muted-foreground px-1">
+        Total customers ({kpis.total.toLocaleString()}) = served ({kpis.served.toLocaleString()}) + currently waiting ({kpis.queue.toLocaleString()}) + left without service ({kpis.abandoned.toLocaleString()}).
+        "Currently waiting" carries into the next simulated period; "left without service" reflects customers who gave up after a long wait rather than being lost with no explanation.
+      </p>
 
       {/* ── Main: control panel + charts ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "240px minmax(0, 1fr)", gap: 14 }}>
+      <div className="grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)] gap-3.5">
 
         {/* Control panel */}
-        <div className="glass rounded-xl p-5 space-y-4 self-start">
+        <div className="glass rounded-xl p-5 space-y-4 self-start lg:sticky lg:top-4">
           <h3 className="text-base font-semibold text-blue-600">Simulation control</h3>
 
           <Field label={`Arrival probability: ${arrProb[0].toFixed(2)}`}>
@@ -331,7 +451,7 @@ const exportPDF = () => {
           <Field label={`Service probability: ${srvProb[0].toFixed(2)}`}>
             <Slider value={srvProb} onValueChange={setSrvProb} min={0} max={1} step={0.05} />
           </Field>
-          <Field label={`Simulation runs: ${runs[0]}`}>
+          <Field label={`Simulated arrivals: ${runs[0]}`}>
             <Slider value={runs} onValueChange={setRuns} min={50} max={1000} step={50} />
           </Field>
           <Field label="Time horizon (hours)">
@@ -359,20 +479,20 @@ const exportPDF = () => {
         </div>
 
         {/* Charts column */}
-        <div className="flex flex-col gap-4 min-w-0">
+        <div className="flex flex-col gap-3.5 min-w-0">
 
           {/* Overview trend */}
           <div className="glass rounded-xl p-5">
             <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
               <h3 className="text-base font-semibold">Overview trend</h3>
-              <div className="flex items-center gap-4 flex-wrap">
-                <div className="flex gap-4">
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex gap-3 flex-wrap">
                   {[
                     ["#2a78d6", "Avg waiting time (min)"],
                     ["#1baf7a", "Max queue length"],
                     ["#9085e9", "Utilization (%)"],
                   ].map(([c, l]) => (
-                    <span key={l} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <span key={l} className="flex items-center gap-1.5 text-xs text-muted-foreground whitespace-nowrap">
                       <span style={{ width: 9, height: 9, borderRadius: "50%", background: c, display: "inline-block", flexShrink: 0 }} />
                       {l}
                     </span>
@@ -384,7 +504,7 @@ const exportPDF = () => {
                 </select>
               </div>
             </div>
-            <div className="h-56">
+            <div className="h-64 sm:h-72">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={hourly} margin={{ top: 4, right: 8, bottom: 16, left: 0 }}>
                   <CartesianGrid strokeDasharray="4 4" stroke="rgba(148,163,184,0.13)" vertical={false} />
@@ -405,16 +525,16 @@ const exportPDF = () => {
 
           {/* Forecast area */}
           <div className="glass rounded-xl p-5">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
               <h3 className="text-base font-semibold">Forecast: queue evolution</h3>
               <select className="text-xs px-2.5 py-1.5 rounded-full border border-border bg-background text-muted-foreground">
                 <option>Max queue length</option>
                 <option>Avg wait</option>
               </select>
             </div>
-            <div className="h-56">
+            <div className="h-64 sm:h-72">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={hourly} margin={{ top: 4, right: 8, bottom: 16, left: 0 }}>
+                <AreaChart data={hourly} margin={{ top: 4, right: 8, bottom: 16, left: 12 }}>
                   <defs>
                     <linearGradient id="qGrad" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%"   stopColor="#1baf7a" stopOpacity={0.35} />
@@ -429,8 +549,8 @@ const exportPDF = () => {
                   />
                   <YAxis
                     {...axisProps}
-                    width={36}
-                    label={{ value: "Queue length", angle: -90, position: "insideLeft", offset: 14, fontSize: 12, fill: "#94a3b8" }}
+                    width={44}
+                    label={{ value: "Queue length", angle: -90, position: "insideLeft", offset: -6, fontSize: 12, fill: "#94a3b8" }}
                   />
                   <Tooltip content={<ChartTooltip />} />
                   <Area type="monotone" dataKey="maxQueue" name="Max queue" stroke="#1baf7a" strokeWidth={2.5} fill="url(#qGrad)" dot={{ r: 4, fill: "#1baf7a", stroke: "#fff", strokeWidth: 2 }} activeDot={{ r: 5 }} />

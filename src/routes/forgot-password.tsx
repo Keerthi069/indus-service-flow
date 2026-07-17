@@ -1,83 +1,190 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Waves } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { db } from "@/lib/mock/db";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { resetPasswordByIdentifier } from "@/lib/mock/db";
 
 export const Route = createFileRoute("/forgot-password")({
-  head: () => ({ meta: [{ title: "Reset Password · Indus Service Flow" }, { name: "description", content: "Reset your Indus Service Flow account password." }] }),
-  component: ForgotPassword,
+  head: () => ({
+    meta: [
+      { title: "Reset Password · Indus Service Flow" },
+      {
+        name: "description",
+        content: "Reset the password for your Indus Service Flow account.",
+      },
+    ],
+  }),
+  component: ForgotPasswordPage,
 });
 
-function ForgotPassword() {
-  const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState("");
-  const [pwd, setPwd] = useState("");
-  const [pwd2, setPwd2] = useState("");
-  const [generated, setGenerated] = useState("");
+function ForgotPasswordPage() {
   const nav = useNavigate();
 
-  function sendOtp(e: React.FormEvent) {
+  const [identifier, setIdentifier] = useState("");
+  const [mobile, setMobile] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
+
+  function submit(e: React.FormEvent) {
     e.preventDefault();
-    const u = db.all("users").find(u => u.email.toLowerCase() === email.toLowerCase());
-    if (!u) { toast.error("No account found for that email"); return; }
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    setGenerated(code);
-    toast.success(`OTP sent. (Demo OTP: ${code})`);
-    setStep(2);
-  }
-  function verify(e: React.FormEvent) {
-    e.preventDefault();
-    if (otp !== generated) { toast.error("Incorrect OTP"); return; }
-    setStep(3);
-  }
-  function reset(e: React.FormEvent) {
-    e.preventDefault();
-    if (pwd.length < 6) { toast.error("Password must be at least 6 characters"); return; }
-    if (pwd !== pwd2) { toast.error("Passwords do not match"); return; }
-    const u = db.all("users").find(x => x.email.toLowerCase() === email.toLowerCase());
-    if (u) db.update("users", u.id, { password: pwd } as never);
-    toast.success("Password reset. Please sign in.");
-    nav({ to: "/login" });
+    setResult(null);
+
+    if (newPassword !== confirmPassword) {
+      setResult({ ok: false, message: "Passwords do not match." });
+      return;
+    }
+
+    setLoading(true);
+
+    setTimeout(() => {
+      const outcome = resetPasswordByIdentifier(identifier.trim(), mobile.trim(), newPassword);
+      setResult(outcome);
+      setLoading(false);
+
+      if (outcome.ok) {
+        toast.success(outcome.message);
+        setIdentifier("");
+        setMobile("");
+        setNewPassword("");
+        setConfirmPassword("");
+        setTimeout(() => nav({ to: "/login" }), 1200);
+      } else {
+        toast.error(outcome.message);
+      }
+    }, 300);
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4 py-10">
+      <Card className="w-full max-w-lg border rounded-2xl shadow-sm">
         <CardHeader>
-          <Link to="/" className="mb-2 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
-            <span className="grid h-8 w-8 place-items-center rounded-md bg-primary text-primary-foreground"><Waves className="h-4 w-4" /></span>
-            Indus Service Flow
-          </Link>
-          <CardTitle className="font-display text-2xl">Reset password</CardTitle>
-          <CardDescription>Step {step} of 3 — {step === 1 ? "enter your email" : step === 2 ? "verify the code" : "set a new password"}.</CardDescription>
+          <Button
+            asChild
+            variant="ghost"
+            size="sm"
+            className="-ml-2 mb-2 w-fit"
+          >
+            <Link to="/login">← Back to Sign In</Link>
+          </Button>
+
+          <CardTitle className="text-3xl font-bold">
+            Reset Password
+          </CardTitle>
+
+          <CardDescription>
+            Enter your email or username and the mobile number registered on your account
+            to set a new password.
+          </CardDescription>
         </CardHeader>
+
         <CardContent>
-          {step === 1 && (
-            <form className="grid gap-4" onSubmit={sendOtp}>
-              <div className="grid gap-1.5"><Label>Email</Label><Input type="email" required value={email} onChange={e => setEmail(e.target.value)} /></div>
-              <Button type="submit">Send OTP</Button>
-            </form>
+          <form className="grid gap-4" onSubmit={submit}>
+            <div className="grid gap-1.5">
+              <Label htmlFor="identifier">
+                Email or Username
+              </Label>
+
+              <Input
+                id="identifier"
+                type="text"
+                autoComplete="username"
+                required
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                placeholder="you@example.com or your.username"
+              />
+            </div>
+
+            <div className="grid gap-1.5">
+              <Label htmlFor="mobile">
+                Registered Mobile Number
+              </Label>
+
+              <Input
+                id="mobile"
+                type="tel"
+                autoComplete="tel"
+                required
+                value={mobile}
+                onChange={(e) => setMobile(e.target.value)}
+                placeholder="+91 98765 43210"
+              />
+            </div>
+
+            <div className="grid gap-1.5">
+              <Label htmlFor="newPassword">
+                New Password
+              </Label>
+
+              <Input
+                id="newPassword"
+                type="password"
+                autoComplete="new-password"
+                required
+                minLength={8}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="At least 8 characters"
+              />
+            </div>
+
+            <div className="grid gap-1.5">
+              <Label htmlFor="confirmPassword">
+                Confirm New Password
+              </Label>
+
+              <Input
+                id="confirmPassword"
+                type="password"
+                autoComplete="new-password"
+                required
+                minLength={8}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Re-enter new password"
+              />
+            </div>
+
+            <Button
+              disabled={loading}
+              type="submit"
+              className="w-full"
+            >
+              {loading ? "Resetting..." : "Reset Password"}
+            </Button>
+          </form>
+
+          {result && (
+            <p
+              className={`mt-4 text-sm ${
+                result.ok ? "text-green-600" : "text-destructive"
+              }`}
+            >
+              {result.message}
+            </p>
           )}
-          {step === 2 && (
-            <form className="grid gap-4" onSubmit={verify}>
-              <div className="grid gap-1.5"><Label>6-digit OTP</Label><Input required value={otp} onChange={e => setOtp(e.target.value)} placeholder="••••••" /></div>
-              <div className="flex gap-2"><Button type="submit" className="flex-1">Verify</Button><Button type="button" variant="ghost" onClick={() => setStep(1)}>Back</Button></div>
-            </form>
-          )}
-          {step === 3 && (
-            <form className="grid gap-4" onSubmit={reset}>
-              <div className="grid gap-1.5"><Label>New password</Label><Input type="password" required value={pwd} onChange={e => setPwd(e.target.value)} /></div>
-              <div className="grid gap-1.5"><Label>Confirm password</Label><Input type="password" required value={pwd2} onChange={e => setPwd2(e.target.value)} /></div>
-              <Button type="submit">Reset password</Button>
-            </form>
-          )}
-          <div className="mt-4 text-center text-xs text-muted-foreground"><Link to="/login" className="hover:text-foreground">Back to login</Link></div>
+
+          <div className="mt-6 text-center text-sm text-muted-foreground">
+            Remembered your password?{" "}
+            <Link
+              to="/login"
+              className="font-medium text-primary hover:underline"
+            >
+              Back to Sign In
+            </Link>
+          </div>
         </CardContent>
       </Card>
     </div>

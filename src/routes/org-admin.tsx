@@ -11,7 +11,6 @@ const items: NavItem[] = [
   { to: "/org-admin/queues", label: "Queues", icon: TimerReset },
   { to: "/org-admin/appointments", label: "Appointments", icon: CalendarCheck },
   { to: "/org-admin/simulations", label: "Simulations", icon: Sparkles },
-  { to: "/org-admin/analytics", label: "Analytics", icon: BarChart3 },
   {  to: "/org-admin/audit", label: "Audit Logs", icon: Activity },
   { to: "/org-admin/reports", label: "Reports", icon: FileBarChart },
 ];

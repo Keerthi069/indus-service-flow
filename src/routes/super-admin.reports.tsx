@@ -1,38 +1,40 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect, useRef } from "react";
-import {
-  ResponsiveContainer,
-  ComposedChart,
-  Line,
-  Area,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Tooltip as RTooltip,
-} from "recharts";
+import { useState, useEffect, useMemo } from "react";
+
+import CsvLogo from "@/assets/csv.png";
+import ExcelLogo from "@/assets/excel.png";
+import PdfLogo from "@/assets/pdf.png";
+
 import {
   Download,
   TrendingUp,
   TrendingDown,
   Building2,
-  Users,
   DollarSign,
   BarChart3,
   UserMinus,
   AlertTriangle,
   CheckCircle,
   ArrowUpCircle,
+  Eye,
+  Layers,
 } from "lucide-react";
 import { PageHeader } from "@/components/portal/PortalShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { db, useDb } from "@/lib/mock/db";
 
 export const Route = createFileRoute("/super-admin/reports")({
@@ -40,6 +42,9 @@ export const Route = createFileRoute("/super-admin/reports")({
 });
 
 // ── Data ─────────────────────────────────────────────────────────────────────
+// This page is a pure tabular report — no chart visualizations. See
+// /super-admin (Dashboard) for the MRR/tenant-growth and subscription-changes
+// charts, which were moved there.
 
 const RANGES = {
   "7d": {
@@ -106,29 +111,108 @@ const PLAN_DIST = [
   { label: "Starter", pct: 23, color: "#eda100" },
 ];
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Currency helpers (INR) ──────────────────────────────────────────────────
 
-function fmt(n: number): string {
-  return n >= 1_000_000
-    ? "$" + (n / 1_000_000).toFixed(2) + "M"
-    : "$" + n.toLocaleString("en-US");
+/** Headline/KPI formatting — abbreviates to Lakh / Crore. */
+function fmtINR(n: number): string {
+  const abs = Math.abs(n);
+  if (abs >= 1_00_00_000) return "₹" + (n / 1_00_00_000).toFixed(2) + " Cr";
+  if (abs >= 1_00_000) return "₹" + (n / 1_00_000).toFixed(2) + " L";
+  return "₹" + Math.round(n).toLocaleString("en-IN");
 }
 
-function fmtK(n: number): string {
-  return n >= 1000 ? "$" + (n / 1000).toFixed(0) + "k" : "$" + n;
+/** Table/exact formatting — full rupee amount, Indian digit grouping. */
+function fmtINRExact(n: number): string {
+  return "₹" + Math.round(n).toLocaleString("en-IN");
 }
 
-type CsvRow = { label: string; mrr: number; tenants: number };
+// ── Export helpers (CSV / Excel / print-to-PDF, per-section or combined) ───
 
-function exportCsv(range: string, data: CsvRow[]) {
-  const rows = ["period,mrr,tenants", ...data.map((r) => `${r.label},${r.mrr},${r.tenants}`)];
-  const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+type ExportRow = string[];
+
+interface ExportSection {
+  title: string;
+  headers: string[];
+  rows: ExportRow[];
+}
+
+function csvEscape(v: string): string {
+  return /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
+}
+
+function toCsv(section: ExportSection): string {
+  const lines = [section.headers.map(csvEscape).join(",")];
+  section.rows.forEach((r) => lines.push(r.map(csvEscape).join(",")));
+  return lines.join("\n");
+}
+
+function toCombinedCsv(sections: ExportSection[]): string {
+  return sections.map((s) => `${s.title}\n${toCsv(s)}`).join("\n\n");
+}
+
+/** Simple HTML-table-as-.xls trick — opens cleanly formatted in Excel. */
+function toXlsHtml(sections: ExportSection[]): string {
+  const tableFor = (s: ExportSection) => `
+    <table border="1">
+      <tr><td colspan="${s.headers.length}"><b>${s.title}</b></td></tr>
+      <tr>${s.headers.map((h) => `<th>${h}</th>`).join("")}</tr>
+      ${s.rows.map((r) => `<tr>${r.map((c) => `<td>${c}</td>`).join("")}</tr>`).join("")}
+    </table>`;
+  return `<html><head><meta charset="UTF-8" /></head><body>${sections
+    .map(tableFor)
+    .join("<br/>")}</body></html>`;
+}
+
+function downloadBlob(content: string, filename: string, mime: string) {
+  const blob = new Blob([content], { type: mime });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `platform-report-${range}.csv`;
+  a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+function slugify(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
+
+function printSections(title: string, sections: ExportSection[]) {
+  const win = window.open("", "_blank", "width=900,height=700");
+  if (!win) return;
+  const body = sections
+    .map(
+      (s) => `
+    <h2>${s.title}</h2>
+    <table style="width:100%;border-collapse:collapse;font-size:12px;">
+      <thead><tr>${s.headers
+        .map(
+          (h) =>
+            `<th style="border:1px solid #ccc;padding:6px;text-align:left;background:#f5f5f5;">${h}</th>`
+        )
+        .join("")}</tr></thead>
+      <tbody>${s.rows
+        .map(
+          (r) =>
+            `<tr>${r.map((c) => `<td style="border:1px solid #ccc;padding:6px;">${c}</td>`).join("")}</tr>`
+        )
+        .join("")}</tbody>
+    </table>`
+    )
+    .join("<hr style='margin:24px 0;border:none;border-top:1px solid #ddd;' />");
+  win.document.write(`
+    <html>
+      <head><title>${title}</title></head>
+      <body style="font-family: system-ui, sans-serif; padding: 24px;">
+        <h1 style="margin-bottom:4px;">${title}</h1>
+        <p style="color:#666;margin-top:0;">Generated ${new Date().toLocaleString("en-IN")}</p>
+        ${body}
+      </body>
+    </html>
+  `);
+  win.document.close();
+  win.focus();
+  win.print();
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -145,10 +229,24 @@ function LivePill() {
   );
 }
 
-function KpiCard({ label, value, delta, positive, Icon }: { label: string; value: string | number; delta: string; positive: boolean; Icon: React.ComponentType<{ className: string }> }) {
+function KpiCard({
+  label,
+  value,
+  delta,
+  positive,
+  Icon,
+  pulse,
+}: {
+  label: string;
+  value: string | number;
+  delta: string;
+  positive: boolean;
+  Icon: React.ComponentType<{ className: string }>;
+  pulse?: boolean;
+}) {
   const DeltaIcon = positive ? TrendingUp : TrendingDown;
   return (
-    <Card>
+    <Card className={pulse ? "transition-colors duration-700" : undefined}>
       <CardContent className="p-4">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
@@ -156,7 +254,13 @@ function KpiCard({ label, value, delta, positive, Icon }: { label: string; value
           </span>
           <Icon className="h-4 w-4 text-muted-foreground/50" />
         </div>
-        <div className="text-2xl font-semibold font-mono tracking-tight">{value}</div>
+        <div
+          className={`text-2xl font-semibold font-mono tracking-tight ${
+            pulse ? "animate-pulse" : ""
+          }`}
+        >
+          {value}
+        </div>
         <div
           className={`mt-1 flex items-center gap-1 text-xs font-medium ${
             positive ? "text-green-600 dark:text-green-400" : "text-red-500 dark:text-red-400"
@@ -198,54 +302,152 @@ function EventIcon({ type, Icon }: { type: 'upgrade' | 'new' | 'warn' | 'down' |
   );
 }
 
-// Custom tooltip for Recharts
-function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: { name: string; value: number; color?: string }[]; label?: string }) {
-  if (!active || !payload?.length) return null;
+/** Preview dialog — shows the exact rows that will be exported. */
+function PreviewDialog({
+  open,
+  onOpenChange,
+  section,
+  sections,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  /** Single section preview, OR pass `sections` for a combined preview. */
+  section?: ExportSection;
+  sections?: ExportSection[];
+}) {
+  const list = sections ?? (section ? [section] : []);
+  const title = sections ? "Full report preview" : section?.title ?? "Preview";
+  const totalRows = list.reduce((acc, s) => acc + s.rows.length, 0);
+  const filenameBase = slugify(sections ? "platform-report" : section?.title ?? "export");
+
   return (
-    <div className="rounded-lg border bg-popover px-3 py-2 text-xs shadow-md">
-      <p className="mb-1 font-medium text-foreground">{label}</p>
-      {payload.map((p) => (
-        <p key={p.name} style={{ color: p.color }}>
-          {p.name === "mrr" ? `MRR: ${fmt(p.value)}` : `Tenants: ${p.value}`}
-        </p>
-      ))}
-    </div>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>
+            {list.length > 1
+              ? `${list.length} sections · ${totalRows} rows total — review before exporting`
+              : `${totalRows} rows — review before exporting`}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="overflow-auto flex-1 space-y-4 pr-1">
+          {list.map((s) => (
+            <div key={s.title} className="border rounded-md overflow-hidden">
+              {list.length > 1 && (
+                <div className="px-3 py-1.5 bg-muted/50 text-xs font-medium text-foreground border-b">
+                  {s.title}
+                </div>
+              )}
+              <table className="w-full text-xs">
+                <thead className="sticky top-0 bg-muted/60">
+                  <tr>
+                    {s.headers.map((h) => (
+                      <th key={h} className="px-3 py-2 text-left font-medium text-muted-foreground border-b">
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {s.rows.map((r, i) => (
+                    <tr key={i} className="border-b last:border-0">
+                      {r.map((c, j) => (
+                        <td key={j} className="px-3 py-2 whitespace-nowrap">
+                          {c}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex justify-end gap-2 pt-2 border-t mt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() =>
+              downloadBlob(
+                list.length > 1 ? toCombinedCsv(list) : toCsv(list[0]),
+                `${filenameBase}.csv`,
+                "text/csv"
+              )
+            }
+          >
+            <img src={CsvLogo} alt="CSV" className="h-4 w-4 object-contain" />
+            CSV
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => downloadBlob(toXlsHtml(list), `${filenameBase}.xls`, "application/vnd.ms-excel")}
+          >
+            <img src={ExcelLogo} alt="Excel" className="h-4 w-4 object-contain" />
+            Excel
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => printSections(title, list)}
+          >
+            <img src={PdfLogo} alt="PDF" className="h-4 w-4 object-contain" />
+            PDF
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
-// Simple SVG donut
-function DonutChart() {
-  const size = 88;
-  const r = 32;
-  const cx = size / 2;
-  const cy = size / 2;
-  const circ = 2 * Math.PI * r;
-  let offset = 0;
-  const slices = PLAN_DIST.map(({ pct, color, label }) => {
-    const dash = (pct / 100) * circ;
-    const gap = circ - dash;
-    const el = (
-      <circle
-        key={label}
-        cx={cx}
-        cy={cy}
-        r={r}
-        fill="none"
-        stroke={color}
-        strokeWidth={10}
-        strokeDasharray={`${dash} ${gap}`}
-        strokeDashoffset={-offset}
-        style={{ transform: "rotate(-90deg)", transformOrigin: "center" }}
-      />
-    );
-    offset += dash;
-    return el;
-  });
+/** Compact per-section export control — sits in a Card header. */
+function SectionExportMenu({ section }: { section: ExportSection }) {
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const filenameBase = slugify(section.title);
+
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <circle cx={cx} cy={cy} r={r} fill="none" stroke="currentColor" strokeWidth={10} className="text-muted/20" />
-      {slices}
-    </svg>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="sm" className="h-7 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground">
+            <Download className="h-3.5 w-3.5" />
+            Export
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-44">
+          <DropdownMenuItem onClick={() => setPreviewOpen(true)} className="gap-2">
+            <Eye className="h-3.5 w-3.5" />
+            Preview
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => downloadBlob(toCsv(section), `${filenameBase}.csv`, "text/csv")}
+            className="gap-2"
+          >
+            <img src={CsvLogo} alt="CSV" className="h-4 w-4 object-contain" />
+            CSV
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => downloadBlob(toXlsHtml([section]), `${filenameBase}.xls`, "application/vnd.ms-excel")}
+            className="gap-2"
+          >
+            <img src={ExcelLogo} alt="Excel" className="h-4 w-4 object-contain" />
+            Excel
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => printSections(section.title, [section])} className="gap-2">
+            <img src={PdfLogo} alt="PDF" className="h-4 w-4 object-contain" />
+            PDF
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <PreviewDialog open={previewOpen} onOpenChange={setPreviewOpen} section={section} />
+    </>
   );
 }
 
@@ -253,18 +455,40 @@ function DonutChart() {
 
 function ReportsPage() {
   const [range, setRange] = useState<"7d" | "30d" | "90d" | "1y">("7d");
-  const [liveMrr, setLiveMrr] = useState(128400);
   const [lastUpdated, setLastUpdated] = useState(new Date());
-  const appointments = useDb(() => db.all("appointments"));
+  const [liveTick, setLiveTick] = useState(0);
+  const [pulse, setPulse] = useState(false);
+  const [allPreviewOpen, setAllPreviewOpen] = useState(false);
   const organizations = useDb(() => db.all("organizations"));
 
-  const chartData = RANGES[range].data;
+  const rangeData = RANGES[range].data;
+  const earliest = rangeData[0];
+  const baseLatest = rangeData[rangeData.length - 1];
 
-  // Live jitter every 5 s
+  // Simulated real-time jitter on the latest period's figures, so the page
+  // visibly behaves like a live report rather than a static one. Bounded to
+  // a small ±0.3% so it never disagrees meaningfully with the underlying data.
+  const jitterFactor = useMemo(() => {
+    const wobble = Math.sin(liveTick * 1.7) * 0.003;
+    return 1 + wobble;
+  }, [liveTick]);
+
+  const liveMrr = Math.round(baseLatest.mrr * jitterFactor);
+  const liveTenants = Math.max(
+    0,
+    Math.round(baseLatest.tenants + Math.round(Math.sin(liveTick * 1.3) * 2))
+  );
+
+  const mrrDeltaPct = earliest.mrr ? (((liveMrr - earliest.mrr) / earliest.mrr) * 100).toFixed(1) : "0.0";
+  const tenantDelta = liveTenants - earliest.tenants;
+
+  // Live tick — refreshes the "updated" timestamp and nudges the KPI jitter.
   useEffect(() => {
     const id = setInterval(() => {
-      setLiveMrr((v) => v + Math.round((Math.random() - 0.45) * 300));
       setLastUpdated(new Date());
+      setLiveTick((t) => t + 1);
+      setPulse(true);
+      setTimeout(() => setPulse(false), 900);
     }, 5000);
     return () => clearInterval(id);
   }, []);
@@ -275,10 +499,41 @@ function ReportsPage() {
 
   const alertCount = EVENTS.filter((e) => e.type === "warn" || e.type === "down").length;
 
-  function handleExport(format: "csv" | "excel" | "pdf") {
-    if (format === "csv" || format === "excel") exportCsv(range, chartData);
-    if (format === "pdf") window.print();
-  }
+  // ── Export sections, built from live state ──────────────────────────────
+
+  const periodSection: ExportSection = useMemo(
+    () => ({
+      title: `MRR & tenants by period — ${RANGES[range].label}`,
+      headers: ["Period", "MRR", "Tenants", "MRR / tenant"],
+      rows: rangeData.map((row) => [
+        row.label,
+        fmtINRExact(row.mrr),
+        String(row.tenants),
+        fmtINRExact(Math.round(row.mrr / row.tenants)),
+      ]),
+    }),
+    [range, rangeData]
+  );
+
+  const planDistSection: ExportSection = useMemo(
+    () => ({
+      title: "Plan distribution",
+      headers: ["Plan", "Share of tenants"],
+      rows: PLAN_DIST.map((p) => [p.label, `${p.pct}%`]),
+    }),
+    []
+  );
+
+  const topTenantsSection: ExportSection = useMemo(
+    () => ({
+      title: "Top tenants by MRR",
+      headers: ["Organization", "Plan", "Seats", "MRR", "Status"],
+      rows: TOP_TENANTS.map((t) => [t.name, t.plan, String(t.seats), fmtINRExact(t.mrr), t.status]),
+    }),
+    []
+  );
+
+  const allSections = [periodSection, planDistSection, topTenantsSection];
 
   return (
     <div className="space-y-5">
@@ -287,13 +542,13 @@ function ReportsPage() {
         <div>
           <PageHeader
             title="Reports"
-            subtitle="Platform-wide analytics for all tenants."
+            subtitle="Platform-wide report data for all tenants."
           />
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <LivePill />
 
-          {/* Range tabs */}
+          {/* Range tabs — control which period the KPI/report rows below reflect */}
           <div className="flex rounded-md border bg-muted/40 p-0.5 gap-0.5">
             {Object.entries(RANGES).map(([key, { label }]) => (
               <button
@@ -310,147 +565,150 @@ function ReportsPage() {
             ))}
           </div>
 
-          {/* Export */}
+          {/* Export everything at once, with a full preview */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
-                <Download className="h-3.5 w-3.5" />
-                Export
+              <Button variant="outline" size="sm" className="h-9 gap-2 px-3">
+                <Layers className="h-3.5 w-3.5" />
+                Export all
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => handleExport("csv")}>Export CSV</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport("excel")}>Export Excel</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport("pdf")}>Export PDF</DropdownMenuItem>
+
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={() => setAllPreviewOpen(true)} className="gap-3">
+                <Eye className="h-4 w-4" />
+                Preview
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => downloadBlob(toCombinedCsv(allSections), `platform-report-${range}.csv`, "text/csv")}
+                className="gap-3"
+              >
+                <img src={CsvLogo} alt="CSV" className="h-5 w-5 object-contain" />
+                CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() =>
+                  downloadBlob(toXlsHtml(allSections), `platform-report-${range}.xls`, "application/vnd.ms-excel")
+                }
+                className="gap-3"
+              >
+                <img src={ExcelLogo} alt="Excel" className="h-5 w-5 object-contain" />
+                Excel
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => printSections("Platform report", allSections)} className="gap-3">
+                <img src={PdfLogo} alt="PDF" className="h-5 w-5 object-contain" />
+                PDF
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </div>
 
-      {/* KPI row */}
+      {/* KPI row — reflects the selected range, with a subtle live pulse */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard label="MRR (live)" value={fmt(liveMrr)} delta="+8.3% vs prior period" positive Icon={DollarSign} />
-        <KpiCard label="ARR" value={"$" + (liveMrr * 12 / 1_000_000).toFixed(2) + "M"} delta="+8.3% vs prior period" positive Icon={BarChart3} />
-        <KpiCard label="Active tenants" value={activeOrgs || 342} delta="+12 this period" positive Icon={Building2} />
+        <KpiCard
+          label={`MRR (${RANGES[range].label})`}
+          value={fmtINR(liveMrr)}
+          delta={`${mrrDeltaPct}% vs start of period`}
+          positive={Number(mrrDeltaPct) >= 0}
+          Icon={DollarSign}
+          pulse={pulse}
+        />
+        <KpiCard
+          label="ARR (annualized)"
+          value={fmtINR(liveMrr * 12)}
+          delta={`${mrrDeltaPct}% vs start of period`}
+          positive={Number(mrrDeltaPct) >= 0}
+          Icon={BarChart3}
+          pulse={pulse}
+        />
+        <KpiCard
+          label="Active tenants"
+          value={activeOrgs || liveTenants}
+          delta={`${tenantDelta >= 0 ? "+" : ""}${tenantDelta} this period`}
+          positive={tenantDelta >= 0}
+          Icon={Building2}
+          pulse={pulse}
+        />
         <KpiCard label="Churn rate" value="1.8%" delta="+0.2pp vs prior period" positive={false} Icon={TrendingDown} />
       </div>
 
-      {/* Chart + right col */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        {/* Main chart */}
-        <Card className="lg:col-span-2">
-          <CardHeader className="pb-2 pt-4 px-4">
-            <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                MRR &amp; tenant growth — {RANGES[range as keyof typeof RANGES].label}
-              </CardTitle>
-              <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-sm inline-block" style={{ background: "#2a78d6" }} />
-                  MRR
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="h-px w-4 inline-block border-t-2 border-dashed" style={{ borderColor: "#1baf7a" }} />
-                  Tenants
-                </span>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="h-[280px] px-2 pb-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="mrrGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#2a78d6" stopOpacity={0.12} />
-                    <stop offset="95%" stopColor="#2a78d6" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-border/50" vertical={false} />
-                <XAxis dataKey="label" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} className="text-muted-foreground" />
-                <YAxis
-                  yAxisId="mrr"
-                  tick={{ fontSize: 11 }}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={fmtK}
-                  className="text-muted-foreground"
-                />
-                <YAxis
-                  yAxisId="tenants"
-                  orientation="right"
-                  tick={{ fontSize: 11, fill: "#1baf7a" }}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <RTooltip content={<CustomTooltip />} />
-                <Area
-                  yAxisId="mrr"
-                  type="monotone"
-                  dataKey="mrr"
-                  stroke="#2a78d6"
-                  strokeWidth={2}
-                  fill="url(#mrrGrad)"
-                  dot={{ r: 3, fill: "#2a78d6", strokeWidth: 2, stroke: "var(--background)" }}
-                  activeDot={{ r: 5 }}
-                />
-                <Line
-                  yAxisId="tenants"
-                  type="monotone"
-                  dataKey="tenants"
-                  stroke="#1baf7a"
-                  strokeWidth={2}
-                  strokeDasharray="5 3"
-                  dot={{ r: 3, fill: "#1baf7a", strokeWidth: 2, stroke: "var(--background)" }}
-                  activeDot={{ r: 5 }}
-                />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Plan distribution */}
-        <Card>
-          <CardHeader className="pb-2 pt-4 px-4">
-            <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-              Plan distribution
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-4 pb-4">
-            <div className="flex items-center gap-4 mb-4">
-              <DonutChart />
-              <div className="flex flex-col gap-2">
-                {PLAN_DIST.map(({ label, pct, color }) => (
-                  <div key={label} className="flex items-center gap-2 text-xs">
-                    <span className="h-2 w-2 rounded-sm flex-shrink-0" style={{ background: color }} />
-                    <span className="text-muted-foreground">{label}</span>
-                    <span className="ml-auto font-mono font-medium text-foreground">{pct}%</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              {PLAN_DIST.map(({ label, pct, color }) => (
-                <div key={label} className="flex items-center gap-2">
-                  <span className="w-16 text-xs text-muted-foreground">{label}</span>
-                  <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
-                    <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
-                  </div>
-                  <span className="w-8 text-right text-xs font-mono text-muted-foreground">{pct}%</span>
-                </div>
+      {/* Period-by-period report table (replaces the growth chart) */}
+      <Card>
+        <CardHeader className="pb-2 pt-4 px-4 flex-row items-center justify-between space-y-0">
+          <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+            MRR &amp; tenants by period — {RANGES[range].label}
+          </CardTitle>
+          <SectionExportMenu section={periodSection} />
+        </CardHeader>
+        <CardContent className="px-0 pb-0">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b">
+                <th className="px-4 py-2 text-left font-medium text-muted-foreground">Period</th>
+                <th className="px-4 py-2 text-right font-medium text-muted-foreground">MRR</th>
+                <th className="px-4 py-2 text-right font-medium text-muted-foreground">Tenants</th>
+                <th className="px-4 py-2 text-right font-medium text-muted-foreground">MRR / tenant</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rangeData.map((row, i) => (
+                <tr key={row.label} className={i < rangeData.length - 1 ? "border-b" : ""}>
+                  <td className="px-4 py-2.5 font-medium text-foreground">{row.label}</td>
+                  <td className="px-4 py-2.5 text-right font-mono text-foreground">{fmtINR(row.mrr)}</td>
+                  <td className="px-4 py-2.5 text-right font-mono text-muted-foreground">{row.tenants}</td>
+                  <td className="px-4 py-2.5 text-right font-mono text-muted-foreground">
+                    {fmtINR(Math.round(row.mrr / row.tenants))}
+                  </td>
+                </tr>
               ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
+
+      {/* Plan distribution as a plain table (no donut/visual chart) */}
+      <Card>
+        <CardHeader className="pb-2 pt-4 px-4 flex-row items-center justify-between space-y-0">
+          <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+            Plan distribution
+          </CardTitle>
+          <SectionExportMenu section={planDistSection} />
+        </CardHeader>
+        <CardContent className="px-0 pb-0">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b">
+                <th className="px-4 py-2 text-left font-medium text-muted-foreground">Plan</th>
+                <th className="px-4 py-2 text-right font-medium text-muted-foreground">Share of tenants</th>
+              </tr>
+            </thead>
+            <tbody>
+              {PLAN_DIST.map((p, i) => (
+                <tr key={p.label} className={i < PLAN_DIST.length - 1 ? "border-b" : ""}>
+                  <td className="px-4 py-2.5">
+                    <span className="inline-flex items-center gap-1.5 font-medium text-foreground">
+                      <span className="h-1.5 w-1.5 rounded-full flex-shrink-0" style={{ background: p.color }} />
+                      {p.label}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2.5 text-right font-mono text-muted-foreground">{p.pct}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
 
       {/* Bottom row */}
       <div className="grid gap-4 lg:grid-cols-2">
         {/* Top tenants */}
         <Card>
-          <CardHeader className="pb-2 pt-4 px-4">
+          <CardHeader className="pb-2 pt-4 px-4 flex-row items-center justify-between space-y-0">
             <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
               Top tenants by MRR
             </CardTitle>
+            <SectionExportMenu section={topTenantsSection} />
           </CardHeader>
           <CardContent className="px-0 pb-0">
             <table className="w-full text-xs">
@@ -469,7 +727,7 @@ function ReportsPage() {
                     <td className="px-4 py-2.5 font-medium text-foreground">{t.name}</td>
                     <td className="px-3 py-2.5 text-muted-foreground">{t.plan}</td>
                     <td className="px-3 py-2.5 text-right font-mono text-muted-foreground">{t.seats}</td>
-                    <td className="px-3 py-2.5 text-right font-mono text-foreground">${t.mrr.toLocaleString()}</td>
+                    <td className="px-3 py-2.5 text-right font-mono text-foreground">{fmtINRExact(t.mrr)}</td>
                     <td className="px-4 py-2.5">
                       <StatusBadge status={t.status} />
                     </td>
@@ -508,11 +766,13 @@ function ReportsPage() {
               </div>
             ))}
             <p className="text-xs text-muted-foreground text-right mt-2 font-mono">
-              Updated {lastUpdated.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+              Updated {lastUpdated.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
             </p>
           </CardContent>
         </Card>
       </div>
+
+      <PreviewDialog open={allPreviewOpen} onOpenChange={setAllPreviewOpen} sections={allSections} />
     </div>
   );
 }

@@ -1,13 +1,12 @@
 import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   Bell,
   LogOut,
   Moon,
   Search,
-  User as UserIcon,
   Waves,
   Sun,
 } from "lucide-react";
@@ -15,15 +14,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 import {
   Sheet,
@@ -35,6 +25,7 @@ import {
 import { useAuth, rolePortalPath } from "@/lib/auth";
 import { useTheme } from "@/lib/theme";
 import { db, useDb, type Role } from "@/lib/mock/db";
+import { cn } from "@/lib/utils";
 
 export interface NavItem {
   to: string;
@@ -96,14 +87,21 @@ export function Kpi({
   value,
   trend,
   icon: Icon,
+  className,
 }: {
   label: string;
   value: string | number;
   trend?: string;
   icon?: React.ComponentType<{ className?: string }>;
+  className?: string;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+    <div
+      className={cn(
+        "flex h-full flex-col justify-center rounded-xl border border-border bg-card p-5 shadow-sm",
+        className,
+      )}
+    >
       <div className="flex items-center justify-between">
         <div className="text-xs uppercase tracking-wider text-muted-foreground">
           {label}
@@ -121,6 +119,111 @@ export function Kpi({
       {trend && (
         <div className="mt-1 text-xs text-green-600">
           {trend}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Global search — searches this portal's nav items by label and lets you
+// jump straight to a page. Kept intentionally simple (no entity/data search)
+// since PortalShell is shared across three different roles with very
+// different underlying data models; each role's `items` list is already
+// passed in, so this works the same way everywhere for free.
+function GlobalSearch({ items }: { items: NavItem[] }) {
+  const nav = useNavigate();
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const [highlighted, setHighlighted] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const results = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+    return items.filter((item) => item.label.toLowerCase().includes(q));
+  }, [items, query]);
+
+  useEffect(() => {
+    setHighlighted(0);
+  }, [query]);
+
+  // Close on outside click
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, []);
+
+  function goTo(item: NavItem) {
+    nav({ to: item.to });
+    setQuery("");
+    setOpen(false);
+  }
+
+  function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (!open || results.length === 0) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHighlighted((h) => (h + 1) % results.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlighted((h) => (h - 1 + results.length) % results.length);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      goTo(results[highlighted]);
+    } else if (e.key === "Escape") {
+      setOpen(false);
+    }
+  }
+
+  return (
+    <div ref={containerRef} className="relative hidden md:block">
+      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+      <Input
+        className="w-64 pl-8"
+        placeholder="Search..."
+        value={query}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setOpen(true);
+        }}
+        onFocus={() => query && setOpen(true)}
+        onKeyDown={onKeyDown}
+      />
+
+      {open && query.trim() && (
+        <div className="absolute right-0 top-full z-50 mt-1 w-72 overflow-hidden rounded-lg border bg-popover shadow-md">
+          {results.length === 0 ? (
+            <div className="px-3 py-3 text-xs text-muted-foreground">
+              No pages match "{query}"
+            </div>
+          ) : (
+            <ul className="max-h-72 overflow-y-auto py-1">
+              {results.map((item, i) => (
+                <li key={item.to}>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => goTo(item)}
+                    onMouseEnter={() => setHighlighted(i)}
+                    className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition ${
+                      i === highlighted
+                        ? "bg-primary/10 text-primary"
+                        : "text-foreground hover:bg-muted/50"
+                    }`}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    {item.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
     </div>
@@ -198,8 +301,8 @@ export function PortalShell({
 
   return (
     <div className="flex min-h-screen w-full bg-background">
-      {/* Sidebar (UNCHANGED) */}
-      <aside className="hidden w-64 flex-col border-r bg-sidebar lg:flex">
+      {/* Sidebar */}
+      <aside className="fixed left-0 top-0 z-40 hidden h-screen w-64 flex-col border-r bg-sidebar lg:flex">
         <div className="flex h-16 items-center gap-2 border-b px-5">
           <span className="grid h-9 w-9 place-items-center rounded-lg bg-primary text-primary-foreground">
             <Waves className="h-5 w-5" />
@@ -227,13 +330,15 @@ export function PortalShell({
                 <li key={item.to}>
                   <Link
                     to={item.to}
-                    className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${
+                    className={`flex items-center gap-3 rounded-lg border-l-2 px-3 py-2 text-sm transition ${
                       active
-                        ? "bg-muted font-medium"
-                        : "hover:bg-muted/50"
+                        ? "border-primary bg-primary/10 font-medium text-primary"
+                        : "border-transparent text-foreground hover:bg-muted/50"
                     }`}
                   >
-                    <item.icon className="h-4 w-4" />
+                    <item.icon
+                      className={`h-4 w-4 ${active ? "text-primary" : ""}`}
+                    />
                     {item.label}
                   </Link>
                 </li>
@@ -241,17 +346,31 @@ export function PortalShell({
             })}
           </ul>
         </nav>
+
+        {/* LOGOUT — pinned to bottom of sidebar */}
+        <div className="border-t p-3">
+          <button
+            onClick={() => {
+              logout();
+              nav({ to: "/" });
+            }}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50"
+          >
+            <LogOut className="h-4 w-4" />
+            Logout
+          </button>
+        </div>
       </aside>
 
-      {/* MAIN (UNCHANGED) */}
-      <div className="flex flex-1 flex-col">
+      {/* MAIN */}
+      <div className="flex flex-1 flex-col lg:ml-64">
         <header className="flex h-16 items-center gap-3 border-b px-4">
           {org?.logo ? (
             <img
-  src={org.logo}
-  alt={org.name}
-  className="h-8 w-8 rounded object-cover"
-/>
+              src={org.logo}
+              alt={org.name}
+              className="h-8 w-8 rounded object-cover"
+            />
           ) : org ? (
             <span className="grid h-8 w-8 place-items-center rounded bg-primary/10 text-primary text-xs font-bold">
               {org.name?.slice(0, 1)}
@@ -265,10 +384,7 @@ export function PortalShell({
           )}
 
           <div className="ml-auto flex items-center gap-2">
-            <div className="relative hidden md:block">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input className="w-64 pl-8" placeholder="Search..." />
-            </div>
+            <GlobalSearch items={items} />
 
             <Button size="icon" variant="ghost" onClick={toggle}>
               {theme === "dark" ? <Sun /> : <Moon />}
@@ -288,51 +404,27 @@ export function PortalShell({
               )}
             </Button>
 
-            {/* =====================================================
-               PROFILE FIX ONLY (UPDATED)
-            ===================================================== */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="px-2">
-                  {/* ONLY AVATAR (NO NAME / EMAIL TEXT) */}
-                  <span className="grid h-8 w-8 place-items-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                    {user.name
-  .replace(/^dr\.?\s*/i, "")
-  .trim()[0]
-  ?.toUpperCase()}
-                  </span>
-                </Button>
-              </DropdownMenuTrigger>
-
-              <DropdownMenuContent align="end" className="w-40">
-                <DropdownMenuItem
-  onClick={() =>
-    nav({
-      to: `${rolePortalPath(user.role)}/profile` as never,
-    })
-  }
->
-  <UserIcon className="mr-2 h-4 w-4" />
-  Profile
-</DropdownMenuItem>
-
-                <DropdownMenuSeparator />
-
-                <DropdownMenuItem
-                  onClick={() => {
-                    logout();
-                    nav({ to: "/" });
-                  }}
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {/* PROFILE — clicking navigates straight to the profile page */}
+            <Button
+              variant="ghost"
+              className="px-2"
+              onClick={() =>
+                nav({
+                  to: `${rolePortalPath(user.role)}/profile` as never,
+                })
+              }
+            >
+              <span className="grid h-8 w-8 place-items-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+                {user.name
+                  .replace(/^dr\.?\s*/i, "")
+                  .trim()[0]
+                  ?.toUpperCase()}
+              </span>
+            </Button>
           </div>
         </header>
 
-        <main className="flex-1 p-6">
+        <main className="flex-1 overflow-y-auto p-6">
           <Outlet />
         </main>
       </div>

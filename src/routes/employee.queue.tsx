@@ -1,213 +1,292 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Check, SkipForward, Repeat, Phone, RefreshCw, PauseCircle, Search, SlidersHorizontal, User, RotateCcw } from "lucide-react";
-import { useState } from "react";
+import {
+  CheckCircle2,
+  Pause,
+  Play,
+  RefreshCw,
+  SkipForward,
+  User,
+  ArrowLeftRight,
+  PhoneCall,
+} from "lucide-react";
+
 import { PageHeader } from "@/components/portal/PortalShell";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useAuth } from "@/lib/auth";
-import { db, useDb, type AppointmentStatus } from "@/lib/mock/db";
 
-export const Route = createFileRoute("/employee/queue")({ component: EmpQueue });
+import { useAuth } from "@/lib/auth";
+import { useHydrated } from "@/lib/mock/db";
+import {
+  useEmployeeQueueData,
+  markCompleted,
+  callInToService,
+  skipToBack,
+  demoteToWaiting,
+  EST_MINUTES_PER_QUEUE_POSITION,
+} from "../lib/employee-queue";
+
+export const Route = createFileRoute("/employee/queue")({
+  component: EmpQueue,
+});
 
 function EmpQueue() {
   const { user } = useAuth();
-  const today = new Date().toISOString().slice(0, 10);
-  const [search, setSearch] = useState("");
+  const hydrated = useHydrated();
+  const [paused, setPaused] = useState(false);
 
-  const rows = useDb(() =>
-    db.all("appointments")
-      .filter(a => a.organization_id === user?.organization_id && a.date === today)
-      .sort((a, b) => a.time.localeCompare(b.time))
-  );
-  const org = useDb(() => db.all("organizations").find(o => o.id === user?.organization_id));
+  const {
+    employee,
+    matchedByFallback,
+    labels,
+    queueName,
+    serving,
+    waiting,
+    duplicateInProgress,
+  } = useEmployeeQueueData(user);
 
-  function set(id: string, status: AppointmentStatus) {
-    db.update("appointments", id, { status } as never);
-    toast.success("Updated");
+  // ── Data-integrity auto-correction ────────────────────────────────────
+  // If more than one appointment for this employee is somehow
+  // "in_progress" at once, demote every one after the earliest back to
+  // waiting. This runs as an effect (not during render) so it doesn't
+  // fight React's render cycle, and only re-fires when the actual set of
+  // duplicate ids changes — once corrected, this list goes empty and the
+  // effect goes quiet.
+  useEffect(() => {
+    if (!duplicateInProgress.length) return;
+    duplicateInProgress.forEach((a: any) => demoteToWaiting(a.id));
+    toast.warning(
+      `Found ${duplicateInProgress.length} customer(s) incorrectly marked In Service at the same time — moved back to waiting.`
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [duplicateInProgress.map((a: any) => a.id).join(",")]);
+
+  // Complete just frees the "In Service" slot. It does NOT automatically
+  // call the next waiting customer — the employee must explicitly click
+  // "Call Next" to bring someone new in.
+  function completeCurrent() {
+    if (!serving) return;
+
+    markCompleted(serving.id);
+    toast.success(`${labels.entity} completed`);
+
+    if (!waiting.length) {
+      toast.info(`No ${labels.entityPlural.toLowerCase()} waiting`);
+    }
   }
 
-  const serving = rows.find(r => r.status === "in_progress");
-  const waiting = rows.filter(r => r.status === "confirmed");
+  // Skip also just frees the slot — no auto-advance. Use "Call Next" for
+  // the next waiting customer.
+  function skipCurrent() {
+    if (!serving) return;
 
-  function callNext() {
-    if (serving) { toast.error("Complete the current patient first"); return; }
+    skipToBack(serving.id);
+    toast.info(`${labels.entity} skipped — moved to back of queue`);
+  }
+
+  function serveNext() {
+    if (paused) {
+      toast.error("Queue is paused — resume to call the next " + labels.entity.toLowerCase());
+      return;
+    }
+
+    // Enforced here, not just in the button's `disabled`: only one
+    // customer may be In Service at a time, so "Call Next" is a no-op
+    // (not a bump) while someone is already being served.
+    if (serving) {
+      toast.error(`Complete or skip the current ${labels.entity.toLowerCase()} before calling the next one`);
+      return;
+    }
+
     const next = waiting[0];
-    if (!next) { toast.error("Queue is empty"); return; }
-    db.update("appointments", next.id, { status: "in_progress" } as never);
-    toast.success(`Now serving ${next.token}`);
+    if (!next) {
+      toast.info(`No ${labels.entityPlural.toLowerCase()} waiting`);
+      return;
+    }
+
+    callInToService(next.id);
+    toast.success(`Now serving ${next.customer_name}`);
   }
 
-  // All active queue (in_progress + confirmed)
-  const queueList = rows.filter(r => r.status === "in_progress" || r.status === "confirmed");
-  const filtered = search
-    ? queueList.filter(r =>
-        r.customer_name.toLowerCase().includes(search.toLowerCase()) ||
-        r.token.toLowerCase().includes(search.toLowerCase())
-      )
-    : queueList;
+  // Transfer also just frees the slot — no auto-advance. Use "Call Next"
+  // afterwards to bring in the next waiting customer.
+  function transferCurrent() {
+    if (!serving) return;
+
+    skipToBack(serving.id);
+    toast.info("Transfer isn't wired to another employee's queue yet — moved back to your own waiting list for now");
+  }
+
+  function refreshQueue() {
+    toast.success("Queue refreshed");
+  }
+
+  function togglePause() {
+    setPaused((p) => !p);
+    toast.success(paused ? "Queue resumed" : "Queue paused");
+  }
+
+  if (!hydrated) {
+    return null; // avoid SSR/localStorage hydration mismatch
+  }
+
+  if (!employee) {
+    return (
+      <div>
+        <PageHeader title="My Queue" subtitle="No employee record found for this account." />
+      </div>
+    );
+  }
+
+  // Combined display order per spec item 4: current customer first, then
+  // waiting customers in queue order. Completed/cancelled/rescheduled
+  // never appear here since useEmployeeQueueData already excludes
+  // terminal statuses.
+  const displayRows = serving ? [serving, ...waiting] : waiting;
 
   return (
-    <div className="space-y-6">
+    <div>
       <PageHeader
         title="My Queue"
-        subtitle={`Patients assigned to ${org?.name ? "General-A" : "General-A"}`}
+        subtitle={`${labels.entityPlural} assigned to ${queueName} — ${employee.name} (${(employee as any).designation})`}
         actions={
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="gap-2" onClick={() => toast.success("Refreshed")}>
-              <RefreshCw className="h-4 w-4" /> Refresh
+            <Button variant="outline" size="sm" onClick={refreshQueue}>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Refresh
             </Button>
-            <Button variant="outline" size="sm" className="gap-2" onClick={() => toast.info("Queue paused")}>
-              <PauseCircle className="h-4 w-4" /> Pause
-            </Button>
-            <Button variant="outline" size="sm" className="gap-2 text-xs" onClick={() => { db.reset(); window.location.reload(); }} title="Reset demo data">
-              <RotateCcw className="h-3.5 w-3.5" /> Reset Data
+
+            <Button variant="outline" size="sm" onClick={togglePause}>
+              {paused ? <Play className="mr-2 h-4 w-4" /> : <Pause className="mr-2 h-4 w-4" />}
+              {paused ? "Resume" : "Pause"}
             </Button>
           </div>
         }
       />
 
-      <div className="grid gap-4 lg:grid-cols-5">
-        {/* ── Current Patient Card ── */}
-        <div className="lg:col-span-2">
-          <div className="rounded-2xl border border-border bg-gradient-to-br from-teal-50/80 to-cyan-50/60 dark:from-teal-950/40 dark:to-cyan-950/30 p-6 h-full">
-            <p className="text-[11px] uppercase tracking-widest font-semibold text-muted-foreground mb-5">
-              Current Patient
-            </p>
+      {matchedByFallback && (
+        <p className="mb-4 text-xs text-yellow-700 bg-yellow-500/10 border border-yellow-500/20 rounded-md px-3 py-2">
+          This account has no linked employee_id — showing the first employee record found
+          for this organization instead of a confirmed match. Set employee_id on this user
+          to fix this.
+        </p>
+      )}
 
-            {serving ? (
-              <div className="space-y-6">
-                {/* Patient info */}
-                <div className="flex items-center gap-4">
-                  <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-teal-500 text-white text-lg font-bold shadow-md">
-                    <User className="h-7 w-7" />
-                  </span>
-                  <div>
-                    <div className="text-xl font-bold">{serving.customer_name}</div>
-                    <div className="text-sm text-muted-foreground">
-                      General-A &bull; Token {serving.token}
-                    </div>
-                  </div>
-                </div>
+      {paused && (
+        <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-800">
+          Queue is paused. New {labels.entityPlural.toLowerCase()} won't be called until you resume.
+        </div>
+      )}
 
-                {/* Action buttons — exactly like screenshot */}
-                <div className="grid grid-cols-2 gap-3">
-                  <Button
-                    className="gap-2 bg-teal-500 hover:bg-teal-600 text-white rounded-xl h-11"
-                    onClick={() => set(serving.id, "completed")}
-                  >
-                    <Check className="h-4 w-4" /> Complete
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="gap-2 rounded-xl h-11"
-                    onClick={() => set(serving.id, "rescheduled")}
-                  >
-                    <SkipForward className="h-4 w-4" /> Skip
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="gap-2 rounded-xl h-11"
-                    onClick={() => set(serving.id, "confirmed")}
-                  >
-                    <Repeat className="h-4 w-4" /> Transfer
-                  </Button>
-                  <Button
-                    className="gap-2 bg-teal-500 hover:bg-teal-600 text-white rounded-xl h-11"
-                    onClick={callNext}
-                  >
-                    <Phone className="h-4 w-4" /> Call next
-                  </Button>
-                </div>
+      <div className="grid gap-4 lg:grid-cols-3">
+        {/* Current Customer */}
+        <div className="rounded-2xl border bg-card p-6">
+          <div className="text-xs uppercase tracking-wider text-muted-foreground">
+            Current {labels.entity}
+          </div>
+
+          <div className="mt-4 flex items-center gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+              <User className="h-7 w-7" />
+            </div>
+
+            <div>
+              <div className="text-2xl font-bold">
+                {serving?.customer_name ?? `No Active ${labels.entity}`}
               </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-10 gap-4 text-center">
-                <span className="grid h-16 w-16 place-items-center rounded-full bg-teal-100 dark:bg-teal-900">
-                  <User className="h-8 w-8 text-teal-500" />
-                </span>
-                <p className="text-sm text-muted-foreground">No patient currently in service</p>
-                <Button
-                  className="gap-2 bg-teal-500 hover:bg-teal-600 text-white rounded-xl"
-                  onClick={callNext}
-                  disabled={waiting.length === 0}
-                >
-                  <Phone className="h-4 w-4" /> Call next
-                </Button>
+
+              <div className="text-sm text-muted-foreground">
+                {serving ? `${queueName} • In Service` : `No active ${labels.entity.toLowerCase()}`}
               </div>
-            )}
+            </div>
+          </div>
+
+          <div className="mt-6 grid grid-cols-2 gap-2">
+            <Button disabled={!serving} onClick={completeCurrent}>
+              <CheckCircle2 className="mr-2 h-4 w-4" />
+              Complete
+            </Button>
+
+            <Button variant="outline" disabled={!serving} onClick={skipCurrent}>
+              <SkipForward className="mr-2 h-4 w-4" />
+              Skip
+            </Button>
+
+            <Button variant="outline" disabled={!serving} onClick={transferCurrent}>
+              <ArrowLeftRight className="mr-2 h-4 w-4" />
+              Transfer
+            </Button>
+
+            {/* Disabled whenever someone is already being served — Call
+               Next is for bringing in the FIRST customer, not bumping an
+               active one. Complete/Skip/Transfer are how you free the slot. */}
+            <Button onClick={serveNext} disabled={paused || !!serving}>
+              <PhoneCall className="mr-2 h-4 w-4" />
+              Call Next
+            </Button>
           </div>
         </div>
 
-        {/* ── Queue List ── */}
-        <div className="lg:col-span-3">
-          <div className="rounded-2xl border border-border bg-card p-6">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
-              <h2 className="text-base font-semibold">
-                Queue list ({filtered.length})
-              </h2>
-              <div className="flex items-center gap-2">
-                {/* Search */}
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    className="w-44 pl-8 h-9 text-sm rounded-xl"
-                    placeholder="Search..."
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                  />
-                </div>
-                {/* Filters button */}
-                <Button variant="outline" size="sm" className="gap-1.5 rounded-xl h-9">
-                  <SlidersHorizontal className="h-4 w-4" /> Filters
-                </Button>
-              </div>
-            </div>
+        {/* Queue List */}
+        <div className="lg:col-span-2 rounded-2xl border bg-card p-6">
+          <div className="mb-4">
+            <h3 className="font-semibold">Queue List ({displayRows.length})</h3>
+          </div>
 
-            {/* Table */}
-            {filtered.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-border py-12 text-center text-sm text-muted-foreground">
-                No patients in queue.
-              </div>
-            ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border text-xs text-muted-foreground">
-                    <th className="pb-3 text-left font-medium">Patient</th>
-                    <th className="pb-3 text-left font-medium">Position</th>
-                    <th className="pb-3 text-left font-medium">Wait</th>
-                    <th className="pb-3 text-left font-medium">Status</th>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="py-3 text-left font-medium">{labels.entity}</th>
+                  <th className="py-3 text-left font-medium">Service</th>
+                  <th className="py-3 text-left font-medium">Position</th>
+                  <th className="py-3 text-left font-medium">Wait</th>
+                  <th className="py-3 text-left font-medium">Status</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {displayRows.map((r: any) => {
+                  const isServing = r.id === serving?.id;
+                  // Waiting position excludes the current customer — #1
+                  // waiting is the very next one to be called.
+                  const waitingIndex = waiting.findIndex((w: any) => w.id === r.id);
+                  const wait = isServing ? 0 : (waitingIndex + 1) * EST_MINUTES_PER_QUEUE_POSITION;
+
+                  return (
+                    <tr key={r.id} className="border-b">
+                      <td className="py-4 font-medium">{r.customer_name}</td>
+
+                      <td className="py-4 text-muted-foreground">{r.service_name}</td>
+
+                      <td className="py-4">{isServing ? "Now Serving" : `#${waitingIndex + 1}`}</td>
+
+                      <td className="py-4">{wait} min</td>
+
+                      <td className="py-4">
+                        <span
+                          className={`rounded-md px-2 py-1 text-xs font-medium ${
+                            isServing
+                              ? "bg-primary/10 text-primary"
+                              : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {isServing ? "In Service" : "Waiting"}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+
+                {!displayRows.length && (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-muted-foreground">
+                      No {labels.entityPlural.toLowerCase()} waiting
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((r, i) => {
-                    const isServing = r.status === "in_progress";
-                    const waitMin   = isServing ? 0 : i * 8;
-                    return (
-                      <tr
-                        key={r.id}
-                        className="border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors"
-                      >
-                        <td className="py-3.5 font-medium">{r.customer_name}</td>
-                        <td className="py-3.5 text-muted-foreground">#{i + 1}</td>
-                        <td className="py-3.5 text-muted-foreground">{waitMin} min</td>
-                        <td className="py-3.5">
-                          {isServing ? (
-                            <span className="inline-flex items-center rounded-full border border-teal-200 bg-teal-50 px-3 py-0.5 text-xs font-semibold text-teal-600 dark:border-teal-800 dark:bg-teal-950 dark:text-teal-300">
-                              In Service
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center rounded-full border border-teal-200 bg-teal-50/60 px-3 py-0.5 text-xs font-semibold text-teal-600 dark:border-teal-800 dark:bg-teal-950 dark:text-teal-300">
-                              Waiting
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

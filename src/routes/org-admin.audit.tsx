@@ -40,20 +40,23 @@ import {
   ClipboardList,
 } from "lucide-react";
 
+import { useAuth } from "@/lib/auth";
 import { db, useDb } from "@/lib/mock/db";
 
-export const Route = createFileRoute("/super-admin/audit")({
-  component: AuditPage,
+export const Route = createFileRoute("/org-admin/audit")({
+  component: OrgAdminAuditPage,
 });
 
 // The mock db's audit_logs table stores entries shaped like:
-// { id, organization_id, user_id, user_name, action, entity, details, created_at }
-// (see seed.ts — SUPER_ADMIN_AUDIT_SEED / ORG_ADMIN_AUDIT_SEED). This page only
-// ever shows the org-admin-authored subset, so we normalize those raw fields
-// into the display shape below rather than assuming a different schema.
-// There is no separate customer/organization portal in this application —
-// organization is shown purely as context (which org the acting admin
-// belongs to), not as a filterable/browsable entity of its own.
+// { id, organization_id, user_id, user_name, action, entity, details, created_at, role }
+// (see seed.ts — ORG_ADMIN_AUDIT_SEED, which already merges an org's own
+// ORG_ADMIN_ACTIONS_SEED with that org's EMPLOYEE_ACTIONS_SEED). This page
+// shows BOTH: every action the signed-in Org Admin has taken themselves,
+// PLUS every action any of their Employees have taken — across every
+// module/entity (Appointment, Customer, Employee, Service, Queue,
+// Feedback, User, Session, ...), not just Login/Logout. There is no
+// separate employee-facing audit log; this page is the only place
+// employee activity is ever exposed.
 type RawAuditLog = {
   id: string;
   organization_id?: string;
@@ -74,7 +77,6 @@ type AuditRow = {
   user_id: string;
   user_name: string;
   role: string;
-  organization_id?: string;
   module_name: string;
   action: string;
   description: string;
@@ -102,6 +104,7 @@ function actionMeta(action: string) {
 
 function initials(name: string) {
   return name
+    .replace(/\b(dr|mr|mrs|ms|prof)\.?\s*/gi, "")
     .split(" ")
     .filter(Boolean)
     .slice(0, 2)
@@ -142,7 +145,7 @@ function exportData(format: "csv" | "xls" | "pdf", logs: AuditRow[]) {
   const a = document.createElement("a");
 
   a.href = url;
-  a.download = `org-admin-audit-logs.${format}`;
+  a.download = `org-audit-logs.${format}`;
   a.click();
 
   URL.revokeObjectURL(url);
@@ -152,50 +155,38 @@ function exportData(format: "csv" | "xls" | "pdf", logs: AuditRow[]) {
 
 const PAGE_SIZE = 5;
 
-function AuditPage() {
+function OrgAdminAuditPage() {
+  const { user } = useAuth();
+  const orgId = user?.organization_id;
+
   const rawLogs = useDb(() => db.all("audit_logs")) as RawAuditLog[];
-  const users = useDb(() => db.all("users")) as any[];
-  const orgs = useDb(() => db.all("organizations")) as any[];
 
   const [actionFilter, setActionFilter] = useState<string>("all");
   const [moduleFilter, setModuleFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
 
-  // Map user_id -> that user's own organization_id. This is the single
-  // source of truth for "which org does this admin belong to" — an org
-  // admin can only ever act within their own org, full stop. Also doubles
-  // as the "is this user an org admin" check for filtering the log feed.
-  const orgAdminOrgById = useMemo(() => {
-    const map = new Map<string, string | undefined>();
-    for (const u of users) {
-      if (u.role === "org_admin") map.set(u.id, u.organization_id);
-    }
-    return map;
-  }, [users]);
-
-  const orgName = (orgId?: string) => orgs.find((o) => o.id === orgId)?.name ?? "—";
-
-  // Normalize + restrict to org-admin-authored entries only. The
-  // organization is always taken from the acting admin's own account
-  // (orgAdminOrgById), never from the raw log's organization_id — that
-  // way a mismatched/legacy record can never make an admin look like
-  // they acted outside their own organization.
+  // Every log tagged with this org — the signed-in Org Admin's own
+  // actions AND every one of their Employees' actions, already merged
+  // and sorted most-recent-first at the seed level. Nothing here is
+  // narrowed to Login/Logout; every module/entity an org can generate
+  // (Appointment, Customer, Employee, Service, Queue, Feedback, User,
+  // Session, ...) shows up.
   const logs: AuditRow[] = useMemo(() => {
     return rawLogs
-      .filter((l) => orgAdminOrgById.has(l.user_id))
+      .filter((l) => l.organization_id === orgId)
       .map((l) => ({
         id: l.id,
         user_id: l.user_id,
         user_name: l.user_name,
-        role: l.role ?? "Org Admin",
-        organization_id: orgAdminOrgById.get(l.user_id),
+        role: l.role ?? "Employee",
         module_name: l.module_name ?? l.entity ?? "—",
         action: l.action,
         description: l.description ?? l.details ?? "—",
         action_date: l.action_date ?? l.created_at ?? "",
-      }));
-  }, [rawLogs, orgAdminOrgById]);
+      }))
+      .sort((a, b) => new Date(b.action_date).getTime() - new Date(a.action_date).getTime());
+  }, [rawLogs, orgId]);
 
   const actions = useMemo(
     () => ["all", ...Array.from(new Set(logs.map((l) => l.action)))],
@@ -220,13 +211,12 @@ function AuditPage() {
           l.user_name?.toLowerCase().includes(q) ||
           l.module_name?.toLowerCase().includes(q) ||
           l.description?.toLowerCase().includes(q) ||
-          l.role?.toLowerCase().includes(q) ||
-          orgName(l.organization_id).toLowerCase().includes(q)
+          l.role?.toLowerCase().includes(q)
       );
     }
 
     return list;
-  }, [logs, actionFilter, moduleFilter, search, orgs]);
+  }, [logs, actionFilter, moduleFilter, search]);
 
   const counts = useMemo(
     () => ({
@@ -262,8 +252,8 @@ function AuditPage() {
       {/* HEADER — fixed row: title stays put, search/filters/export never wrap or reflow */}
       <div className="sticky top-0 z-10 flex items-center justify-between gap-4 bg-background py-2 flex-nowrap">
         <PageHeader
-          title="Audit logs"
-          subtitle="Track every action performed by organization admins on the platform."
+          title="Audit log"
+          subtitle="Every action taken in your organization — your own, and your employees'."
         />
 
         <div className="flex items-center gap-2 flex-nowrap">
@@ -425,7 +415,7 @@ function AuditPage() {
               <div className="flex flex-col items-center gap-2 py-14 text-center text-muted-foreground">
                 <ScrollText className="h-8 w-8 text-muted-foreground/40" />
                 <p className="text-sm font-medium text-foreground">
-                  {hasActiveFilters ? "No logs match your filters" : "No org admin audit logs yet"}
+                  {hasActiveFilters ? "No logs match your filters" : "No activity yet in your organization"}
                 </p>
                 {hasActiveFilters && (
                   <Button variant="ghost" size="sm" onClick={clearFilters}>
@@ -453,14 +443,19 @@ function AuditPage() {
                   <div className="text-muted-foreground">{whenLabel}</div>
 
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                    <div
+                      className={
+                        "grid h-8 w-8 flex-shrink-0 place-items-center rounded-full text-xs font-semibold " +
+                        (log.role === "Org Admin"
+                          ? "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300"
+                          : "bg-primary/10 text-primary")
+                      }
+                    >
                       {initials(log.user_name)}
                     </div>
                     <div className="min-w-0">
                       <div className="truncate font-medium text-foreground">{log.user_name}</div>
-                      <div className="truncate text-xs text-muted-foreground">
-                        {orgName(log.organization_id)}
-                      </div>
+                      <div className="truncate text-xs text-muted-foreground">{log.role}</div>
                     </div>
                   </div>
 

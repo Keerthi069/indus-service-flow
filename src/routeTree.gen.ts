@@ -15,38 +15,34 @@ import { Route as OrgAdminRouteImport } from './routes/org-admin'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as EmployeeRouteImport } from './routes/employee'
-import { Route as CustomerRouteImport } from './routes/customer'
 import { Route as BookAppointmentRouteImport } from './routes/book-appointment'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SuperAdminIndexRouteImport } from './routes/super-admin.index'
 import { Route as OrgAdminIndexRouteImport } from './routes/org-admin.index'
 import { Route as EmployeeIndexRouteImport } from './routes/employee.index'
-import { Route as CustomerIndexRouteImport } from './routes/customer.index'
 import { Route as SuperAdminUsersRouteImport } from './routes/super-admin.users'
-import { Route as SuperAdminSettingsRouteImport } from './routes/super-admin.settings'
-import { Route as SuperAdminRequestsRouteImport } from './routes/super-admin.requests'
+import { Route as SuperAdminSubscriptionsRouteImport } from './routes/super-admin.subscriptions'
+import { Route as SuperAdminServiceCategoriesRouteImport } from './routes/super-admin.service-categories'
 import { Route as SuperAdminReportsRouteImport } from './routes/super-admin.reports'
+import { Route as SuperAdminProfileRouteImport } from './routes/super-admin.profile'
+import { Route as SuperAdminPlansRouteImport } from './routes/super-admin.plans'
 import { Route as SuperAdminOrganizationsRouteImport } from './routes/super-admin.organizations'
 import { Route as SuperAdminCategoriesRouteImport } from './routes/super-admin.categories'
 import { Route as SuperAdminAuditRouteImport } from './routes/super-admin.audit'
 import { Route as OrgAdminSimulationsRouteImport } from './routes/org-admin.simulations'
-import { Route as OrgAdminSettingsRouteImport } from './routes/org-admin.settings'
 import { Route as OrgAdminServicesRouteImport } from './routes/org-admin.services'
 import { Route as OrgAdminServiceCategoriesRouteImport } from './routes/org-admin.service-categories'
 import { Route as OrgAdminReportsRouteImport } from './routes/org-admin.reports'
 import { Route as OrgAdminQueuesRouteImport } from './routes/org-admin.queues'
+import { Route as OrgAdminProfileRouteImport } from './routes/org-admin.profile'
 import { Route as OrgAdminEmployeesRouteImport } from './routes/org-admin.employees'
 import { Route as OrgAdminCustomersRouteImport } from './routes/org-admin.customers'
+import { Route as OrgAdminAuditRouteImport } from './routes/org-admin.audit'
 import { Route as OrgAdminAppointmentsRouteImport } from './routes/org-admin.appointments'
-import { Route as OrgAdminAnalyticsRouteImport } from './routes/org-admin.analytics'
-import { Route as OrgAdminAiRouteImport } from './routes/org-admin.ai'
 import { Route as EmployeeScheduleRouteImport } from './routes/employee.schedule'
 import { Route as EmployeeQueueRouteImport } from './routes/employee.queue'
+import { Route as EmployeeProfileRouteImport } from './routes/employee.profile'
 import { Route as EmployeePerformanceRouteImport } from './routes/employee.performance'
-import { Route as CustomerQueueStatusRouteImport } from './routes/customer.queue-status'
-import { Route as CustomerProfileRouteImport } from './routes/customer.profile'
-import { Route as CustomerFeedbackRouteImport } from './routes/customer.feedback'
-import { Route as CustomerAppointmentsRouteImport } from './routes/customer.appointments'
 
 const SuperAdminRoute = SuperAdminRouteImport.update({
   id: '/super-admin',
@@ -78,11 +74,6 @@ const EmployeeRoute = EmployeeRouteImport.update({
   path: '/employee',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CustomerRoute = CustomerRouteImport.update({
-  id: '/customer',
-  path: '/customer',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const BookAppointmentRoute = BookAppointmentRouteImport.update({
   id: '/book-appointment',
   path: '/book-appointment',
@@ -108,29 +99,35 @@ const EmployeeIndexRoute = EmployeeIndexRouteImport.update({
   path: '/',
   getParentRoute: () => EmployeeRoute,
 } as any)
-const CustomerIndexRoute = CustomerIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => CustomerRoute,
-} as any)
 const SuperAdminUsersRoute = SuperAdminUsersRouteImport.update({
   id: '/users',
   path: '/users',
   getParentRoute: () => SuperAdminRoute,
 } as any)
-const SuperAdminSettingsRoute = SuperAdminSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
+const SuperAdminSubscriptionsRoute = SuperAdminSubscriptionsRouteImport.update({
+  id: '/subscriptions',
+  path: '/subscriptions',
   getParentRoute: () => SuperAdminRoute,
 } as any)
-const SuperAdminRequestsRoute = SuperAdminRequestsRouteImport.update({
-  id: '/requests',
-  path: '/requests',
-  getParentRoute: () => SuperAdminRoute,
-} as any)
+const SuperAdminServiceCategoriesRoute =
+  SuperAdminServiceCategoriesRouteImport.update({
+    id: '/service-categories',
+    path: '/service-categories',
+    getParentRoute: () => SuperAdminRoute,
+  } as any)
 const SuperAdminReportsRoute = SuperAdminReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
+const SuperAdminProfileRoute = SuperAdminProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
+const SuperAdminPlansRoute = SuperAdminPlansRouteImport.update({
+  id: '/plans',
+  path: '/plans',
   getParentRoute: () => SuperAdminRoute,
 } as any)
 const SuperAdminOrganizationsRoute = SuperAdminOrganizationsRouteImport.update({
@@ -151,11 +148,6 @@ const SuperAdminAuditRoute = SuperAdminAuditRouteImport.update({
 const OrgAdminSimulationsRoute = OrgAdminSimulationsRouteImport.update({
   id: '/simulations',
   path: '/simulations',
-  getParentRoute: () => OrgAdminRoute,
-} as any)
-const OrgAdminSettingsRoute = OrgAdminSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
   getParentRoute: () => OrgAdminRoute,
 } as any)
 const OrgAdminServicesRoute = OrgAdminServicesRouteImport.update({
@@ -179,6 +171,11 @@ const OrgAdminQueuesRoute = OrgAdminQueuesRouteImport.update({
   path: '/queues',
   getParentRoute: () => OrgAdminRoute,
 } as any)
+const OrgAdminProfileRoute = OrgAdminProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => OrgAdminRoute,
+} as any)
 const OrgAdminEmployeesRoute = OrgAdminEmployeesRouteImport.update({
   id: '/employees',
   path: '/employees',
@@ -189,19 +186,14 @@ const OrgAdminCustomersRoute = OrgAdminCustomersRouteImport.update({
   path: '/customers',
   getParentRoute: () => OrgAdminRoute,
 } as any)
+const OrgAdminAuditRoute = OrgAdminAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => OrgAdminRoute,
+} as any)
 const OrgAdminAppointmentsRoute = OrgAdminAppointmentsRouteImport.update({
   id: '/appointments',
   path: '/appointments',
-  getParentRoute: () => OrgAdminRoute,
-} as any)
-const OrgAdminAnalyticsRoute = OrgAdminAnalyticsRouteImport.update({
-  id: '/analytics',
-  path: '/analytics',
-  getParentRoute: () => OrgAdminRoute,
-} as any)
-const OrgAdminAiRoute = OrgAdminAiRouteImport.update({
-  id: '/ai',
-  path: '/ai',
   getParentRoute: () => OrgAdminRoute,
 } as any)
 const EmployeeScheduleRoute = EmployeeScheduleRouteImport.update({
@@ -214,68 +206,49 @@ const EmployeeQueueRoute = EmployeeQueueRouteImport.update({
   path: '/queue',
   getParentRoute: () => EmployeeRoute,
 } as any)
+const EmployeeProfileRoute = EmployeeProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => EmployeeRoute,
+} as any)
 const EmployeePerformanceRoute = EmployeePerformanceRouteImport.update({
   id: '/performance',
   path: '/performance',
   getParentRoute: () => EmployeeRoute,
 } as any)
-const CustomerQueueStatusRoute = CustomerQueueStatusRouteImport.update({
-  id: '/queue-status',
-  path: '/queue-status',
-  getParentRoute: () => CustomerRoute,
-} as any)
-const CustomerProfileRoute = CustomerProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => CustomerRoute,
-} as any)
-const CustomerFeedbackRoute = CustomerFeedbackRouteImport.update({
-  id: '/feedback',
-  path: '/feedback',
-  getParentRoute: () => CustomerRoute,
-} as any)
-const CustomerAppointmentsRoute = CustomerAppointmentsRouteImport.update({
-  id: '/appointments',
-  path: '/appointments',
-  getParentRoute: () => CustomerRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/book-appointment': typeof BookAppointmentRoute
-  '/customer': typeof CustomerRouteWithChildren
   '/employee': typeof EmployeeRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/org-admin': typeof OrgAdminRouteWithChildren
   '/register-organization': typeof RegisterOrganizationRoute
   '/super-admin': typeof SuperAdminRouteWithChildren
-  '/customer/appointments': typeof CustomerAppointmentsRoute
-  '/customer/feedback': typeof CustomerFeedbackRoute
-  '/customer/profile': typeof CustomerProfileRoute
-  '/customer/queue-status': typeof CustomerQueueStatusRoute
   '/employee/performance': typeof EmployeePerformanceRoute
+  '/employee/profile': typeof EmployeeProfileRoute
   '/employee/queue': typeof EmployeeQueueRoute
   '/employee/schedule': typeof EmployeeScheduleRoute
-  '/org-admin/ai': typeof OrgAdminAiRoute
-  '/org-admin/analytics': typeof OrgAdminAnalyticsRoute
   '/org-admin/appointments': typeof OrgAdminAppointmentsRoute
+  '/org-admin/audit': typeof OrgAdminAuditRoute
   '/org-admin/customers': typeof OrgAdminCustomersRoute
   '/org-admin/employees': typeof OrgAdminEmployeesRoute
+  '/org-admin/profile': typeof OrgAdminProfileRoute
   '/org-admin/queues': typeof OrgAdminQueuesRoute
   '/org-admin/reports': typeof OrgAdminReportsRoute
   '/org-admin/service-categories': typeof OrgAdminServiceCategoriesRoute
   '/org-admin/services': typeof OrgAdminServicesRoute
-  '/org-admin/settings': typeof OrgAdminSettingsRoute
   '/org-admin/simulations': typeof OrgAdminSimulationsRoute
   '/super-admin/audit': typeof SuperAdminAuditRoute
   '/super-admin/categories': typeof SuperAdminCategoriesRoute
   '/super-admin/organizations': typeof SuperAdminOrganizationsRoute
+  '/super-admin/plans': typeof SuperAdminPlansRoute
+  '/super-admin/profile': typeof SuperAdminProfileRoute
   '/super-admin/reports': typeof SuperAdminReportsRoute
-  '/super-admin/requests': typeof SuperAdminRequestsRoute
-  '/super-admin/settings': typeof SuperAdminSettingsRoute
+  '/super-admin/service-categories': typeof SuperAdminServiceCategoriesRoute
+  '/super-admin/subscriptions': typeof SuperAdminSubscriptionsRoute
   '/super-admin/users': typeof SuperAdminUsersRoute
-  '/customer/': typeof CustomerIndexRoute
   '/employee/': typeof EmployeeIndexRoute
   '/org-admin/': typeof OrgAdminIndexRoute
   '/super-admin/': typeof SuperAdminIndexRoute
@@ -286,32 +259,29 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/register-organization': typeof RegisterOrganizationRoute
-  '/customer/appointments': typeof CustomerAppointmentsRoute
-  '/customer/feedback': typeof CustomerFeedbackRoute
-  '/customer/profile': typeof CustomerProfileRoute
-  '/customer/queue-status': typeof CustomerQueueStatusRoute
   '/employee/performance': typeof EmployeePerformanceRoute
+  '/employee/profile': typeof EmployeeProfileRoute
   '/employee/queue': typeof EmployeeQueueRoute
   '/employee/schedule': typeof EmployeeScheduleRoute
-  '/org-admin/ai': typeof OrgAdminAiRoute
-  '/org-admin/analytics': typeof OrgAdminAnalyticsRoute
   '/org-admin/appointments': typeof OrgAdminAppointmentsRoute
+  '/org-admin/audit': typeof OrgAdminAuditRoute
   '/org-admin/customers': typeof OrgAdminCustomersRoute
   '/org-admin/employees': typeof OrgAdminEmployeesRoute
+  '/org-admin/profile': typeof OrgAdminProfileRoute
   '/org-admin/queues': typeof OrgAdminQueuesRoute
   '/org-admin/reports': typeof OrgAdminReportsRoute
   '/org-admin/service-categories': typeof OrgAdminServiceCategoriesRoute
   '/org-admin/services': typeof OrgAdminServicesRoute
-  '/org-admin/settings': typeof OrgAdminSettingsRoute
   '/org-admin/simulations': typeof OrgAdminSimulationsRoute
   '/super-admin/audit': typeof SuperAdminAuditRoute
   '/super-admin/categories': typeof SuperAdminCategoriesRoute
   '/super-admin/organizations': typeof SuperAdminOrganizationsRoute
+  '/super-admin/plans': typeof SuperAdminPlansRoute
+  '/super-admin/profile': typeof SuperAdminProfileRoute
   '/super-admin/reports': typeof SuperAdminReportsRoute
-  '/super-admin/requests': typeof SuperAdminRequestsRoute
-  '/super-admin/settings': typeof SuperAdminSettingsRoute
+  '/super-admin/service-categories': typeof SuperAdminServiceCategoriesRoute
+  '/super-admin/subscriptions': typeof SuperAdminSubscriptionsRoute
   '/super-admin/users': typeof SuperAdminUsersRoute
-  '/customer': typeof CustomerIndexRoute
   '/employee': typeof EmployeeIndexRoute
   '/org-admin': typeof OrgAdminIndexRoute
   '/super-admin': typeof SuperAdminIndexRoute
@@ -320,39 +290,35 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/book-appointment': typeof BookAppointmentRoute
-  '/customer': typeof CustomerRouteWithChildren
   '/employee': typeof EmployeeRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/org-admin': typeof OrgAdminRouteWithChildren
   '/register-organization': typeof RegisterOrganizationRoute
   '/super-admin': typeof SuperAdminRouteWithChildren
-  '/customer/appointments': typeof CustomerAppointmentsRoute
-  '/customer/feedback': typeof CustomerFeedbackRoute
-  '/customer/profile': typeof CustomerProfileRoute
-  '/customer/queue-status': typeof CustomerQueueStatusRoute
   '/employee/performance': typeof EmployeePerformanceRoute
+  '/employee/profile': typeof EmployeeProfileRoute
   '/employee/queue': typeof EmployeeQueueRoute
   '/employee/schedule': typeof EmployeeScheduleRoute
-  '/org-admin/ai': typeof OrgAdminAiRoute
-  '/org-admin/analytics': typeof OrgAdminAnalyticsRoute
   '/org-admin/appointments': typeof OrgAdminAppointmentsRoute
+  '/org-admin/audit': typeof OrgAdminAuditRoute
   '/org-admin/customers': typeof OrgAdminCustomersRoute
   '/org-admin/employees': typeof OrgAdminEmployeesRoute
+  '/org-admin/profile': typeof OrgAdminProfileRoute
   '/org-admin/queues': typeof OrgAdminQueuesRoute
   '/org-admin/reports': typeof OrgAdminReportsRoute
   '/org-admin/service-categories': typeof OrgAdminServiceCategoriesRoute
   '/org-admin/services': typeof OrgAdminServicesRoute
-  '/org-admin/settings': typeof OrgAdminSettingsRoute
   '/org-admin/simulations': typeof OrgAdminSimulationsRoute
   '/super-admin/audit': typeof SuperAdminAuditRoute
   '/super-admin/categories': typeof SuperAdminCategoriesRoute
   '/super-admin/organizations': typeof SuperAdminOrganizationsRoute
+  '/super-admin/plans': typeof SuperAdminPlansRoute
+  '/super-admin/profile': typeof SuperAdminProfileRoute
   '/super-admin/reports': typeof SuperAdminReportsRoute
-  '/super-admin/requests': typeof SuperAdminRequestsRoute
-  '/super-admin/settings': typeof SuperAdminSettingsRoute
+  '/super-admin/service-categories': typeof SuperAdminServiceCategoriesRoute
+  '/super-admin/subscriptions': typeof SuperAdminSubscriptionsRoute
   '/super-admin/users': typeof SuperAdminUsersRoute
-  '/customer/': typeof CustomerIndexRoute
   '/employee/': typeof EmployeeIndexRoute
   '/org-admin/': typeof OrgAdminIndexRoute
   '/super-admin/': typeof SuperAdminIndexRoute
@@ -362,39 +328,35 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/book-appointment'
-    | '/customer'
     | '/employee'
     | '/forgot-password'
     | '/login'
     | '/org-admin'
     | '/register-organization'
     | '/super-admin'
-    | '/customer/appointments'
-    | '/customer/feedback'
-    | '/customer/profile'
-    | '/customer/queue-status'
     | '/employee/performance'
+    | '/employee/profile'
     | '/employee/queue'
     | '/employee/schedule'
-    | '/org-admin/ai'
-    | '/org-admin/analytics'
     | '/org-admin/appointments'
+    | '/org-admin/audit'
     | '/org-admin/customers'
     | '/org-admin/employees'
+    | '/org-admin/profile'
     | '/org-admin/queues'
     | '/org-admin/reports'
     | '/org-admin/service-categories'
     | '/org-admin/services'
-    | '/org-admin/settings'
     | '/org-admin/simulations'
     | '/super-admin/audit'
     | '/super-admin/categories'
     | '/super-admin/organizations'
+    | '/super-admin/plans'
+    | '/super-admin/profile'
     | '/super-admin/reports'
-    | '/super-admin/requests'
-    | '/super-admin/settings'
+    | '/super-admin/service-categories'
+    | '/super-admin/subscriptions'
     | '/super-admin/users'
-    | '/customer/'
     | '/employee/'
     | '/org-admin/'
     | '/super-admin/'
@@ -405,32 +367,29 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/register-organization'
-    | '/customer/appointments'
-    | '/customer/feedback'
-    | '/customer/profile'
-    | '/customer/queue-status'
     | '/employee/performance'
+    | '/employee/profile'
     | '/employee/queue'
     | '/employee/schedule'
-    | '/org-admin/ai'
-    | '/org-admin/analytics'
     | '/org-admin/appointments'
+    | '/org-admin/audit'
     | '/org-admin/customers'
     | '/org-admin/employees'
+    | '/org-admin/profile'
     | '/org-admin/queues'
     | '/org-admin/reports'
     | '/org-admin/service-categories'
     | '/org-admin/services'
-    | '/org-admin/settings'
     | '/org-admin/simulations'
     | '/super-admin/audit'
     | '/super-admin/categories'
     | '/super-admin/organizations'
+    | '/super-admin/plans'
+    | '/super-admin/profile'
     | '/super-admin/reports'
-    | '/super-admin/requests'
-    | '/super-admin/settings'
+    | '/super-admin/service-categories'
+    | '/super-admin/subscriptions'
     | '/super-admin/users'
-    | '/customer'
     | '/employee'
     | '/org-admin'
     | '/super-admin'
@@ -438,39 +397,35 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/book-appointment'
-    | '/customer'
     | '/employee'
     | '/forgot-password'
     | '/login'
     | '/org-admin'
     | '/register-organization'
     | '/super-admin'
-    | '/customer/appointments'
-    | '/customer/feedback'
-    | '/customer/profile'
-    | '/customer/queue-status'
     | '/employee/performance'
+    | '/employee/profile'
     | '/employee/queue'
     | '/employee/schedule'
-    | '/org-admin/ai'
-    | '/org-admin/analytics'
     | '/org-admin/appointments'
+    | '/org-admin/audit'
     | '/org-admin/customers'
     | '/org-admin/employees'
+    | '/org-admin/profile'
     | '/org-admin/queues'
     | '/org-admin/reports'
     | '/org-admin/service-categories'
     | '/org-admin/services'
-    | '/org-admin/settings'
     | '/org-admin/simulations'
     | '/super-admin/audit'
     | '/super-admin/categories'
     | '/super-admin/organizations'
+    | '/super-admin/plans'
+    | '/super-admin/profile'
     | '/super-admin/reports'
-    | '/super-admin/requests'
-    | '/super-admin/settings'
+    | '/super-admin/service-categories'
+    | '/super-admin/subscriptions'
     | '/super-admin/users'
-    | '/customer/'
     | '/employee/'
     | '/org-admin/'
     | '/super-admin/'
@@ -479,7 +434,6 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BookAppointmentRoute: typeof BookAppointmentRoute
-  CustomerRoute: typeof CustomerRouteWithChildren
   EmployeeRoute: typeof EmployeeRouteWithChildren
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
@@ -532,13 +486,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EmployeeRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/customer': {
-      id: '/customer'
-      path: '/customer'
-      fullPath: '/customer'
-      preLoaderRoute: typeof CustomerRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/book-appointment': {
       id: '/book-appointment'
       path: '/book-appointment'
@@ -574,13 +521,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EmployeeIndexRouteImport
       parentRoute: typeof EmployeeRoute
     }
-    '/customer/': {
-      id: '/customer/'
-      path: '/'
-      fullPath: '/customer/'
-      preLoaderRoute: typeof CustomerIndexRouteImport
-      parentRoute: typeof CustomerRoute
-    }
     '/super-admin/users': {
       id: '/super-admin/users'
       path: '/users'
@@ -588,18 +528,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SuperAdminUsersRouteImport
       parentRoute: typeof SuperAdminRoute
     }
-    '/super-admin/settings': {
-      id: '/super-admin/settings'
-      path: '/settings'
-      fullPath: '/super-admin/settings'
-      preLoaderRoute: typeof SuperAdminSettingsRouteImport
+    '/super-admin/subscriptions': {
+      id: '/super-admin/subscriptions'
+      path: '/subscriptions'
+      fullPath: '/super-admin/subscriptions'
+      preLoaderRoute: typeof SuperAdminSubscriptionsRouteImport
       parentRoute: typeof SuperAdminRoute
     }
-    '/super-admin/requests': {
-      id: '/super-admin/requests'
-      path: '/requests'
-      fullPath: '/super-admin/requests'
-      preLoaderRoute: typeof SuperAdminRequestsRouteImport
+    '/super-admin/service-categories': {
+      id: '/super-admin/service-categories'
+      path: '/service-categories'
+      fullPath: '/super-admin/service-categories'
+      preLoaderRoute: typeof SuperAdminServiceCategoriesRouteImport
       parentRoute: typeof SuperAdminRoute
     }
     '/super-admin/reports': {
@@ -607,6 +547,20 @@ declare module '@tanstack/react-router' {
       path: '/reports'
       fullPath: '/super-admin/reports'
       preLoaderRoute: typeof SuperAdminReportsRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/profile': {
+      id: '/super-admin/profile'
+      path: '/profile'
+      fullPath: '/super-admin/profile'
+      preLoaderRoute: typeof SuperAdminProfileRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/plans': {
+      id: '/super-admin/plans'
+      path: '/plans'
+      fullPath: '/super-admin/plans'
+      preLoaderRoute: typeof SuperAdminPlansRouteImport
       parentRoute: typeof SuperAdminRoute
     }
     '/super-admin/organizations': {
@@ -637,13 +591,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgAdminSimulationsRouteImport
       parentRoute: typeof OrgAdminRoute
     }
-    '/org-admin/settings': {
-      id: '/org-admin/settings'
-      path: '/settings'
-      fullPath: '/org-admin/settings'
-      preLoaderRoute: typeof OrgAdminSettingsRouteImport
-      parentRoute: typeof OrgAdminRoute
-    }
     '/org-admin/services': {
       id: '/org-admin/services'
       path: '/services'
@@ -672,6 +619,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgAdminQueuesRouteImport
       parentRoute: typeof OrgAdminRoute
     }
+    '/org-admin/profile': {
+      id: '/org-admin/profile'
+      path: '/profile'
+      fullPath: '/org-admin/profile'
+      preLoaderRoute: typeof OrgAdminProfileRouteImport
+      parentRoute: typeof OrgAdminRoute
+    }
     '/org-admin/employees': {
       id: '/org-admin/employees'
       path: '/employees'
@@ -686,25 +640,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgAdminCustomersRouteImport
       parentRoute: typeof OrgAdminRoute
     }
+    '/org-admin/audit': {
+      id: '/org-admin/audit'
+      path: '/audit'
+      fullPath: '/org-admin/audit'
+      preLoaderRoute: typeof OrgAdminAuditRouteImport
+      parentRoute: typeof OrgAdminRoute
+    }
     '/org-admin/appointments': {
       id: '/org-admin/appointments'
       path: '/appointments'
       fullPath: '/org-admin/appointments'
       preLoaderRoute: typeof OrgAdminAppointmentsRouteImport
-      parentRoute: typeof OrgAdminRoute
-    }
-    '/org-admin/analytics': {
-      id: '/org-admin/analytics'
-      path: '/analytics'
-      fullPath: '/org-admin/analytics'
-      preLoaderRoute: typeof OrgAdminAnalyticsRouteImport
-      parentRoute: typeof OrgAdminRoute
-    }
-    '/org-admin/ai': {
-      id: '/org-admin/ai'
-      path: '/ai'
-      fullPath: '/org-admin/ai'
-      preLoaderRoute: typeof OrgAdminAiRouteImport
       parentRoute: typeof OrgAdminRoute
     }
     '/employee/schedule': {
@@ -721,6 +668,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EmployeeQueueRouteImport
       parentRoute: typeof EmployeeRoute
     }
+    '/employee/profile': {
+      id: '/employee/profile'
+      path: '/profile'
+      fullPath: '/employee/profile'
+      preLoaderRoute: typeof EmployeeProfileRouteImport
+      parentRoute: typeof EmployeeRoute
+    }
     '/employee/performance': {
       id: '/employee/performance'
       path: '/performance'
@@ -728,59 +682,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EmployeePerformanceRouteImport
       parentRoute: typeof EmployeeRoute
     }
-    '/customer/queue-status': {
-      id: '/customer/queue-status'
-      path: '/queue-status'
-      fullPath: '/customer/queue-status'
-      preLoaderRoute: typeof CustomerQueueStatusRouteImport
-      parentRoute: typeof CustomerRoute
-    }
-    '/customer/profile': {
-      id: '/customer/profile'
-      path: '/profile'
-      fullPath: '/customer/profile'
-      preLoaderRoute: typeof CustomerProfileRouteImport
-      parentRoute: typeof CustomerRoute
-    }
-    '/customer/feedback': {
-      id: '/customer/feedback'
-      path: '/feedback'
-      fullPath: '/customer/feedback'
-      preLoaderRoute: typeof CustomerFeedbackRouteImport
-      parentRoute: typeof CustomerRoute
-    }
-    '/customer/appointments': {
-      id: '/customer/appointments'
-      path: '/appointments'
-      fullPath: '/customer/appointments'
-      preLoaderRoute: typeof CustomerAppointmentsRouteImport
-      parentRoute: typeof CustomerRoute
-    }
   }
 }
 
-interface CustomerRouteChildren {
-  CustomerAppointmentsRoute: typeof CustomerAppointmentsRoute
-  CustomerFeedbackRoute: typeof CustomerFeedbackRoute
-  CustomerProfileRoute: typeof CustomerProfileRoute
-  CustomerQueueStatusRoute: typeof CustomerQueueStatusRoute
-  CustomerIndexRoute: typeof CustomerIndexRoute
-}
-
-const CustomerRouteChildren: CustomerRouteChildren = {
-  CustomerAppointmentsRoute: CustomerAppointmentsRoute,
-  CustomerFeedbackRoute: CustomerFeedbackRoute,
-  CustomerProfileRoute: CustomerProfileRoute,
-  CustomerQueueStatusRoute: CustomerQueueStatusRoute,
-  CustomerIndexRoute: CustomerIndexRoute,
-}
-
-const CustomerRouteWithChildren = CustomerRoute._addFileChildren(
-  CustomerRouteChildren,
-)
-
 interface EmployeeRouteChildren {
   EmployeePerformanceRoute: typeof EmployeePerformanceRoute
+  EmployeeProfileRoute: typeof EmployeeProfileRoute
   EmployeeQueueRoute: typeof EmployeeQueueRoute
   EmployeeScheduleRoute: typeof EmployeeScheduleRoute
   EmployeeIndexRoute: typeof EmployeeIndexRoute
@@ -788,6 +695,7 @@ interface EmployeeRouteChildren {
 
 const EmployeeRouteChildren: EmployeeRouteChildren = {
   EmployeePerformanceRoute: EmployeePerformanceRoute,
+  EmployeeProfileRoute: EmployeeProfileRoute,
   EmployeeQueueRoute: EmployeeQueueRoute,
   EmployeeScheduleRoute: EmployeeScheduleRoute,
   EmployeeIndexRoute: EmployeeIndexRoute,
@@ -798,31 +706,29 @@ const EmployeeRouteWithChildren = EmployeeRoute._addFileChildren(
 )
 
 interface OrgAdminRouteChildren {
-  OrgAdminAiRoute: typeof OrgAdminAiRoute
-  OrgAdminAnalyticsRoute: typeof OrgAdminAnalyticsRoute
   OrgAdminAppointmentsRoute: typeof OrgAdminAppointmentsRoute
+  OrgAdminAuditRoute: typeof OrgAdminAuditRoute
   OrgAdminCustomersRoute: typeof OrgAdminCustomersRoute
   OrgAdminEmployeesRoute: typeof OrgAdminEmployeesRoute
+  OrgAdminProfileRoute: typeof OrgAdminProfileRoute
   OrgAdminQueuesRoute: typeof OrgAdminQueuesRoute
   OrgAdminReportsRoute: typeof OrgAdminReportsRoute
   OrgAdminServiceCategoriesRoute: typeof OrgAdminServiceCategoriesRoute
   OrgAdminServicesRoute: typeof OrgAdminServicesRoute
-  OrgAdminSettingsRoute: typeof OrgAdminSettingsRoute
   OrgAdminSimulationsRoute: typeof OrgAdminSimulationsRoute
   OrgAdminIndexRoute: typeof OrgAdminIndexRoute
 }
 
 const OrgAdminRouteChildren: OrgAdminRouteChildren = {
-  OrgAdminAiRoute: OrgAdminAiRoute,
-  OrgAdminAnalyticsRoute: OrgAdminAnalyticsRoute,
   OrgAdminAppointmentsRoute: OrgAdminAppointmentsRoute,
+  OrgAdminAuditRoute: OrgAdminAuditRoute,
   OrgAdminCustomersRoute: OrgAdminCustomersRoute,
   OrgAdminEmployeesRoute: OrgAdminEmployeesRoute,
+  OrgAdminProfileRoute: OrgAdminProfileRoute,
   OrgAdminQueuesRoute: OrgAdminQueuesRoute,
   OrgAdminReportsRoute: OrgAdminReportsRoute,
   OrgAdminServiceCategoriesRoute: OrgAdminServiceCategoriesRoute,
   OrgAdminServicesRoute: OrgAdminServicesRoute,
-  OrgAdminSettingsRoute: OrgAdminSettingsRoute,
   OrgAdminSimulationsRoute: OrgAdminSimulationsRoute,
   OrgAdminIndexRoute: OrgAdminIndexRoute,
 }
@@ -835,9 +741,11 @@ interface SuperAdminRouteChildren {
   SuperAdminAuditRoute: typeof SuperAdminAuditRoute
   SuperAdminCategoriesRoute: typeof SuperAdminCategoriesRoute
   SuperAdminOrganizationsRoute: typeof SuperAdminOrganizationsRoute
+  SuperAdminPlansRoute: typeof SuperAdminPlansRoute
+  SuperAdminProfileRoute: typeof SuperAdminProfileRoute
   SuperAdminReportsRoute: typeof SuperAdminReportsRoute
-  SuperAdminRequestsRoute: typeof SuperAdminRequestsRoute
-  SuperAdminSettingsRoute: typeof SuperAdminSettingsRoute
+  SuperAdminServiceCategoriesRoute: typeof SuperAdminServiceCategoriesRoute
+  SuperAdminSubscriptionsRoute: typeof SuperAdminSubscriptionsRoute
   SuperAdminUsersRoute: typeof SuperAdminUsersRoute
   SuperAdminIndexRoute: typeof SuperAdminIndexRoute
 }
@@ -846,9 +754,11 @@ const SuperAdminRouteChildren: SuperAdminRouteChildren = {
   SuperAdminAuditRoute: SuperAdminAuditRoute,
   SuperAdminCategoriesRoute: SuperAdminCategoriesRoute,
   SuperAdminOrganizationsRoute: SuperAdminOrganizationsRoute,
+  SuperAdminPlansRoute: SuperAdminPlansRoute,
+  SuperAdminProfileRoute: SuperAdminProfileRoute,
   SuperAdminReportsRoute: SuperAdminReportsRoute,
-  SuperAdminRequestsRoute: SuperAdminRequestsRoute,
-  SuperAdminSettingsRoute: SuperAdminSettingsRoute,
+  SuperAdminServiceCategoriesRoute: SuperAdminServiceCategoriesRoute,
+  SuperAdminSubscriptionsRoute: SuperAdminSubscriptionsRoute,
   SuperAdminUsersRoute: SuperAdminUsersRoute,
   SuperAdminIndexRoute: SuperAdminIndexRoute,
 }
@@ -860,7 +770,6 @@ const SuperAdminRouteWithChildren = SuperAdminRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BookAppointmentRoute: BookAppointmentRoute,
-  CustomerRoute: CustomerRouteWithChildren,
   EmployeeRoute: EmployeeRouteWithChildren,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,

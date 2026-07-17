@@ -42,27 +42,9 @@ export function SiteHeader() {
           <Button size="icon" variant="ghost" onClick={toggle} aria-label="Toggle theme" className="shrink-0">
             {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
-
-          <Button asChild size="sm" variant="ghost" className="hidden md:inline-flex">
-            <Link to="/login">Login</Link>
-          </Button>
-          <Button asChild size="sm" variant="outline" className="hidden lg:inline-flex">
-            <Link to="/register-organization">Register Organization</Link>
-          </Button>
-          <Button asChild size="sm" className="hidden sm:inline-flex">
-            <Link to="/book-appointment">Book Appointment</Link>
-          </Button>
-
-          <Button
-            size="icon"
-            variant="ghost"
-            className="shrink-0 xl:hidden"
-            onClick={() => setOpen((v) => !v)}
-            aria-label={open ? "Close menu" : "Open menu"}
-            aria-expanded={open}
-          >
-            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
+          <Link to="/login" search={{ redirect: undefined }}><Button size="sm" variant="ghost">Login</Button></Link>
+          <Link to="/register-organization"><Button size="sm" variant="outline">Register Organization</Button></Link>
+          <Link to="/book-appointment"><Button size="sm">Book Appointment</Button></Link>
         </div>
       </div>
 

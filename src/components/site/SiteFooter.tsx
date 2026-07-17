@@ -25,7 +25,7 @@ export function SiteFooter() {
           <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
             <li><Link to="/book-appointment" className="hover:text-foreground">Book Appointment</Link></li>
             <li><Link to="/register-organization" className="hover:text-foreground">Register Organization</Link></li>
-            <li><Link to="/login" className="hover:text-foreground">Login</Link></li>
+            <li><Link to="/login" search={{redirect:undefined}} className="hover:text-foreground">Login</Link></li>
           </ul>
         </div>
         <div>

@@ -22,6 +22,7 @@ import {
   Globe,
   Hash,
   ArrowRight,
+  Sparkles,
 } from "lucide-react";
 
 export const Route = createFileRoute("/register-organization")({
@@ -148,13 +149,33 @@ function RegisterOrganization() {
   };
 
   return (
-    <div className="min-h-screen bg-muted/30 flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-2xl">
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-emerald-50 via-teal-50 to-sky-100 flex items-center justify-center px-4 py-10">
+      {/* Faint ambient rings, echoing the "flow" motif used across the
+         product's teal accent — quiet, not decorative-for-its-own-sake. */}
+      <div className="pointer-events-none absolute inset-0 opacity-[0.35]">
+        <svg viewBox="0 0 600 600" className="absolute -right-32 -top-32 h-[420px] w-[420px]">
+          <circle cx="300" cy="300" r="120" fill="none" stroke="#0d9488" strokeWidth="1" />
+          <circle cx="300" cy="300" r="200" fill="none" stroke="#0d9488" strokeWidth="1" />
+        </svg>
+        <svg viewBox="0 0 600 600" className="absolute -bottom-40 -left-32 h-[420px] w-[420px]">
+          <circle cx="300" cy="300" r="140" fill="none" stroke="#0d9488" strokeWidth="1" />
+          <circle cx="300" cy="300" r="220" fill="none" stroke="#0d9488" strokeWidth="1" />
+        </svg>
+      </div>
 
+      <div className="relative w-full max-w-2xl">
         {/* Card */}
-        <div className="rounded-2xl border bg-card shadow-sm">
-          <div className="px-8 pt-8 pb-2 text-center">
-            <h1 className="text-xl font-semibold tracking-tight">
+        <div className="rounded-3xl border-0 bg-white/90 shadow-2xl backdrop-blur">
+          <div className="px-8 pt-6">
+            <div className="flex items-center justify-end">
+              <span className="flex items-center gap-1.5 rounded-full bg-teal-50 px-2.5 py-1 text-[11px] font-medium text-teal-700">
+                <Sparkles className="h-3 w-3" /> Indus Service Flow
+              </span>
+            </div>
+          </div>
+
+          <div className="px-8 pt-4 pb-2 text-center">
+            <h1 className="text-3xl font-bold tracking-tight">
               Register your organisation
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -300,7 +321,7 @@ function RegisterOrganization() {
 
             <Button
               type="submit"
-              className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+              className="w-full h-11 bg-teal-600 hover:bg-teal-700 text-white gap-2 rounded-lg"
             >
               Register organisation
               <ArrowRight className="h-4 w-4" />
@@ -308,9 +329,9 @@ function RegisterOrganization() {
           </form>
         </div>
 
-        <p className="text-center text-sm text-muted-foreground mt-6">
+        <p className="relative text-center text-sm text-muted-foreground mt-6">
           Already registered?{" "}
-          <Link to="/login" search={{ redirect: undefined }} className="font-medium text-foreground hover:underline">
+          <Link to="/login" search={{ redirect: undefined }} className="font-medium text-teal-700 hover:underline">
             Sign in
           </Link>
         </p>
@@ -346,7 +367,7 @@ function IconInput({
   return (
     <div className="relative">
       <Icon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-      <Input className="h-10 pl-9" {...props} />
+      <Input className="h-10 pl-9 rounded-lg" {...props} />
     </div>
   );
 }
@@ -368,7 +389,7 @@ function IconSelect({
     <div className="relative">
       <Icon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground z-10" />
       <Select value={value} onValueChange={onValueChange}>
-        <SelectTrigger className="h-10 pl-9">
+        <SelectTrigger className="h-10 pl-9 rounded-lg">
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>{children}</SelectContent>

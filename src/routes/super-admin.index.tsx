@@ -36,7 +36,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 const PLAN_PRICES: Record<string, number> = {
   enterprise: 49999,
-  professional: 24999,
+  growth: 24999,
   starter: 9999,
 };
 
@@ -128,7 +128,7 @@ function Dashboard() {
   const planDistribution = useMemo(
     () => [
       { name: "Starter", value: orgs.filter((o) => o.plan !== "enterprise" && o.plan !== "professional").length },
-      { name: "Professional", value: orgs.filter((o) => o.plan === "professional").length },
+      { name: "Growth", value: orgs.filter((o) => o.plan === "professional").length },
       { name: "Enterprise", value: orgs.filter((o) => o.plan === "enterprise").length },
     ],
     [orgs],

@@ -2,14 +2,14 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { toast } from "sonner";
 import {
-  ArrowRight, Hospital, Stethoscope, Landmark, Store, Headphones,
-  CalendarCheck, Users, BarChart3, Bot, Bell, MessageSquareHeart,
-  ShieldCheck, KeyRound, ScrollText, Lock, Activity, FileLock2,
-  Building2, UserCog, Check, ChevronRight, Zap, TrendingDown,
-  Clock, Star, Sparkles,
+  ArrowRight, Hospital, Landmark, Store, Headphones,
+  CalendarCheck, Users, BarChart3, Bell, ShieldCheck, KeyRound,
+  ScrollText, Lock, Activity, FileLock2, Building2, UserCog, Check,
+  ChevronRight, Gauge, Radio,
+  Mail, Phone, MapPin, Send, Clock,
+  Hourglass, FileX, Frown, Ticket, UserCheck, Star, X,
 } from "lucide-react";
 import { SiteHeader } from "@/components/site/SiteHeader";
-import { SiteFooter } from "@/components/site/SiteFooter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,162 +21,125 @@ import {
   DialogDescription, DialogTrigger,
 } from "@/components/ui/dialog";
 import { db, uid } from "@/lib/mock/db";
-import heroReception from "@/assets/hero-reception.jpg";
+import heroImage from "@/assets/hero-reception.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Indus Service Flow — Smart Appointment & Queue Management" },
-      { name: "description", content: "Reduce waiting time and optimize operations across hospitals, clinics, banks, retail and customer support centers." },
+      { name: "description", content: "Reduce waiting time and modernize operations across hospitals, clinics, banks, retail and customer support centers." },
     ],
   }),
   component: LandingPage,
 });
 
-// ── Shared data ────────────────────────────────────────────────────────────
+// ── Tokens ───────────────────────────────────────────────────────────────────
 
-const stats = [
-  { label: "Organizations", value: 1250, suffix: "+", icon: Building2 },
-  { label: "Appointments managed", value: 8.4, suffix: "M", decimals: 1, icon: CalendarCheck },
-  { label: "Customers served", value: 12, suffix: "M+", icon: Users },
-  { label: "Average wait reduction", value: 47, suffix: "%", icon: TrendingDown },
+const TEAL = "#0D9488";
+const TEAL_DARK = "#134E4A";
+const CYAN = "#0891B2";
+const AMBER = "#F59E0B";
+
+// ── Data ─────────────────────────────────────────────────────────────────────
+
+const problems = [
+  { icon: Hourglass, title: "Long, unpredictable waits", desc: "Customers queue with no idea how long is left, so they either wait anxiously or walk out." },
+  { icon: FileX, title: "Paper tokens, lost records", desc: "Handwritten slips and register books go missing exactly when a visit needs to be traced." },
+  { icon: Users, title: "No visibility across counters", desc: "Front desk staff can't see which counters are free, so load piles up unevenly." },
+  { icon: Building2, title: "Disconnected branches", desc: "Every branch or department runs its own system, with no shared view for admins." },
+  { icon: Bell, title: "Staff overload at peak hours", desc: "Shifts aren't matched to demand, so the busiest hours are also the most understaffed." },
+  { icon: Frown, title: "Frustrated, walked-out customers", desc: "Poor wait experiences show up as lower ratings and repeat visits that never happen." },
+];
+
+const builtFor = [
+  { icon: Hospital, title: "Hospitals & Clinics", desc: "Coordinate OPD, diagnostics and ward visits without a crowded waiting room." },
+  { icon: Landmark, title: "Banks & Financial Institutions", desc: "Route customers to the right counter by service type, not by luck." },
+  { icon: Store, title: "Retail Stores", desc: "Manage billing lines, trial rooms and service counters from one screen." },
+  { icon: Headphones, title: "Support & Service Desks", desc: "Turn a walk-in support desk into a structured, trackable queue." },
 ];
 
 const features = [
-  { icon: CalendarCheck, title: "Appointment booking", desc: "Multi-step booking with smart slot allocation and conflict prevention.", highlight: true },
-  { icon: Users, title: "Queue management", desc: "Live tokens, transfers, pause/resume and instant notifications.", highlight: true },
-  { icon: BarChart3, title: "Analytics dashboard", desc: "Wait-time trends, peak hours, bottlenecks and capacity planning." },
-  { icon: Bot, title: "AI recommendations", desc: "Auto-suggested staffing, counter capacity and slot expansion." },
-  { icon: Bell, title: "Notifications", desc: "In-app, email and SMS-ready channels segmented by role." },
-  { icon: MessageSquareHeart, title: "Feedback management", desc: "Post-service ratings on quality, behaviour and recommendation." },
-  { icon: ScrollText, title: "Reports and exports", desc: "Daily, monthly and annual reports with PDF, Excel and CSV." },
-  { icon: ShieldCheck, title: "Role-based access", desc: "Granular RBAC across super-admin, org admin and employee." },
+  { icon: CalendarCheck, title: "Appointment management", desc: "Multi-step booking with slot allocation, conflict prevention and reschedule flows." },
+  { icon: Radio, title: "Live queue management", desc: "Tokens, transfers, pause/resume and instant status updates." },
+  { icon: Gauge, title: "Wait time prediction", desc: "Estimates from live counter load and historical patterns." },
+  { icon: Users, title: "Employee management", desc: "Shifts, holds, performance history and counter assignment." },
+  { icon: BarChart3, title: "Analytics & reports", desc: "Wait-time trends, peak hours and bottlenecks, exportable to PDF, Excel and CSV." },
+  { icon: Bell, title: "Notifications", desc: "In-app and email alerts segmented by role and event." },
+];
+
+const flowSteps = [
+  { icon: CalendarCheck, title: "Book" },
+  { icon: Ticket, title: "Check in" },
+  { icon: Radio, title: "Queue" },
+  { icon: UserCheck, title: "Serve" },
+  { icon: BarChart3, title: "Analyze" },
 ];
 
 const security = [
-  { icon: KeyRound, title: "JWT authentication", desc: "Access and refresh tokens with rotation and revocation." },
+  { icon: KeyRound, title: "Secure authentication", desc: "Access and refresh tokens with rotation and revocation." },
   { icon: ShieldCheck, title: "Role-based access", desc: "Strict RBAC enforced at API and UI layers." },
-  { icon: ScrollText, title: "Audit logging", desc: "Every create, update and delete recorded with actor and IP." },
-  { icon: Lock, title: "Data protection", desc: "Encryption in transit and at rest, with daily backups." },
+  { icon: ScrollText, title: "Audit logs", desc: "Every create, update and delete recorded with actor and timestamp." },
   { icon: FileLock2, title: "Session management", desc: "Idle timeout, device sessions and remote sign-out." },
-  { icon: Activity, title: "Activity monitoring", desc: "Real-time alerts on suspicious access patterns." },
+  { icon: Lock, title: "Data protection", desc: "Encryption in transit and at rest, with routine backups." },
+  { icon: Activity, title: "Activity monitoring", desc: "Alerts on unusual access patterns across the platform." },
 ];
 
 const portals = [
   {
     icon: ShieldCheck, key: "super_admin",
     title: "Super admin", desc: "Govern the entire platform, organizations and tenants.",
-    color: "bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300",
-    points: ["Approve and reject organization requests", "Manage categories, users and audit logs", "Platform-wide reports and revenue insights"],
+    accent: TEAL,
+    points: ["Approve and reject organization requests", "Manage categories, users and audit logs", "Platform-wide reports"],
+    mock: "super_admin" as const,
   },
   {
     icon: Building2, key: "org_admin",
     title: "Org admin", desc: "Run a single organization end-to-end with full analytics.",
-    color: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
-    points: ["Services, employees, customers, appointments", "Live queue, simulations and analytics", "AI recommendations and exports"],
+    accent: CYAN,
+    points: ["Services, employees, customers, appointments", "Live queue and analytics", "Reports and exports"],
+    mock: "org_admin" as const,
   },
   {
     icon: UserCog, key: "employee",
-    title: "Employee", desc: "Focused workflow for the people serving customers daily.",
-    color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
-    points: ["Personal queue and schedule", "Start, pause, resume and complete service", "Performance and rating trends"],
+    title: "Employee", desc: "A focused workflow for the people serving customers daily.",
+    accent: AMBER,
+    points: ["Personal queue and schedule", "Start, pause, resume and complete service", "Performance history"],
+    mock: "employee" as const,
   },
 ];
 
-const categories = [
-  { icon: Hospital, name: "Hospitals" },
-  { icon: Stethoscope, name: "Clinics" },
-  { icon: Landmark, name: "Banks" },
-  { icon: Store, name: "Retail stores" },
-  { icon: Headphones, name: "Support centers" },
+const featureRows = [
+  "Online + walk-in booking",
+  "Live queue dashboard",
+  "Wait time prediction",
+  "Multi-branch support",
+  "Detailed analytics & export",
+  "Custom SLAs & onboarding",
 ];
 
-const howSteps = [
-  { title: "Register your organization", desc: "Sign up with category, contact details and branding in under 5 minutes." },
-  { title: "Get approved", desc: "Platform team reviews and activates your account, usually within one business day." },
-  { title: "Set up your workspace", desc: "Add services, employees, counters and shift schedules." },
-  { title: "Go live with bookings", desc: "Customers book online or walk in — tokens issued instantly." },
-  { title: "Serve in real time", desc: "Live queue processing with transfers, pauses and status updates." },
-  { title: "Improve with insights", desc: "Analytics and AI recommendations surface what to optimize and when." },
-];
-
-const testimonials = [
-  { name: "Dr. Kavitha Nair", role: "Medical Director, Apollo Clinics", text: "Wait times dropped by 40% in the first month. Patients now know their exact slot before they arrive.", stars: 5 },
-  { name: "Ravi Shankar", role: "Branch Head, Canara Bank", text: "We eliminated the token-slip queue entirely. Staff can now focus on service, not crowd control.", stars: 5 },
-  { name: "Priya Menon", role: "Ops Manager, Reliance Retail", text: "The AI staffing suggestions alone saved us ₹2L a month in unnecessary overtime.", stars: 5 },
-];
-
-// Live queue ticker — simulates real-time queue activity
-const tickerItems = [
-  "Apollo Hospitals · Counter 3 now serving token #47",
-  "SBI Branch, MG Road · Wait time reduced to 8 min",
-  "Fortis Clinic · 23 appointments completed today",
-  "HDFC Bank, Banjara Hills · Queue cleared ahead of schedule",
-  "Max Healthcare · AI extended slots during peak hours",
-];
-
-// Pricing plans (mirrors the super-admin plan model, trimmed for public view)
-const PLANS = [
+const plans = [
   {
-    id: "starter",
-    name: "Starter",
-    icon: Zap,
-    color: "#eda100",
-    tagline: "For small teams just getting set up",
-    priceMonthly: 2999,
-    priceAnnual: 2399,
-    employeeLimit: "Up to 25",
-    queueLimit: "Up to 5",
-    popular: false,
-    features: [
-      "Basic reports & history",
-      "Email support",
-      "Online + walk-in booking",
-      "Live queue dashboard",
-    ],
+    id: "starter", name: "Starter", color: TEAL,
+    price: "₹2,999", cadence: "/month",
+    counters: "Up to 2", support: "Email",
+    included: [true, true, false, false, false, false],
+    cta: "Subscribe Now", filled: false, popular: false,
   },
   {
-    id: "growth",
-    name: "Growth",
-    icon: Users,
-    color: "#1baf7a",
-    tagline: "For busy orgs handling more daily volume",
-    priceMonthly: 5999,
-    priceAnnual: 4799,
-    employeeLimit: "Up to 60",
-    queueLimit: "Up to 12",
-    popular: true,
-    features: [
-      "Detailed reports & data export",
-      "Priority email & chat support",
-      "Multiple branches / locations",
-      "Custom staff roles & permissions",
-      "AI staffing recommendations",
-    ],
+    id: "professional", name: "Professional", color: TEAL,
+    price: "₹5,999", cadence: "/month",
+    counters: "Up to 10", support: "Email & chat",
+    included: [true, true, true, true, true, false],
+    cta: "Subscribe Now", filled: true, popular: true,
   },
   {
-    id: "enterprise",
-    name: "Enterprise",
-    icon: Building2,
-    color: "#2a78d6",
-    tagline: "For large organizations with no limits",
-    priceMonthly: 11999,
-    priceAnnual: 9599,
-    employeeLimit: "Unlimited",
-    queueLimit: "Unlimited",
-    popular: false,
-    features: [
-      "Everything in Growth",
-      "24/7 priority support",
-      "Dedicated account manager",
-      "Custom SLAs & onboarding",
-    ],
+    id: "enterprise", name: "Enterprise", color: TEAL,
+    price: "₹11,999", cadence: "/month",
+    counters: "Unlimited", support: "24/7 phone & chat",
+    included: [true, true, true, true, true, true],
+    cta: "Subscribe Now", filled: false, popular: false,
   },
 ];
-
-function fmtINR(n: number) {
-  return "₹" + n.toLocaleString("en-IN");
-}
 
 // ── Scroll-reveal helper ─────────────────────────────────────────────────────
 
@@ -220,162 +183,45 @@ function Reveal({
   );
 }
 
-// ── Animated counter ──────────────────────────────────────────────────────────
-
-function CountUp({ value, decimals = 0, duration = 1400 }: { value: number; decimals?: number; duration?: number }) {
-  const { ref, inView } = useInView<HTMLSpanElement>(0.5);
-  const [display, setDisplay] = useState(0);
-
-  useEffect(() => {
-    if (!inView) return;
-    let start: number | null = null;
-    let raf: number;
-    const tick = (t: number) => {
-      if (start === null) start = t;
-      const progress = Math.min((t - start) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setDisplay(value * eased);
-      if (progress < 1) raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [inView, value, duration]);
-
-  return (
-    <span ref={ref}>
-      {display.toFixed(decimals)}
-    </span>
-  );
-}
-
-function LiveTicker() {
-  const [index, setIndex] = useState(0);
-  const [visible, setVisible] = useState(true);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setVisible(false);
-      setTimeout(() => {
-        setIndex((i) => (i + 1) % tickerItems.length);
-        setVisible(true);
-      }, 300);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
-    <div className="flex items-center gap-3 rounded-full border bg-card/80 px-4 py-2 text-sm shadow-sm backdrop-blur">
-      <span className="relative flex h-2 w-2 flex-shrink-0">
-        <span className="absolute inline-flex h-2 w-2 animate-ping rounded-full bg-green-400 opacity-75" />
-        <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
-      </span>
-      <span
-        className={`text-muted-foreground transition-opacity duration-300 ${visible ? "opacity-100" : "opacity-0"}`}
-      >
-        {tickerItems[index]}
-      </span>
-    </div>
-  );
-}
+// ── Page ─────────────────────────────────────────────────────────────────────
 
 function LandingPage() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-white text-foreground">
       <SiteHeader />
       <main>
         <Hero />
-        <LogoStrip />
+        <WhatsBroken />
+        <BuiltFor />
         <Features />
-        <How />
-        <Testimonials />
-        <Pricing />
+        <ProcessFlow />
         <Portals />
         <Security />
         <Contact />
+        <Pricing />
       </main>
-      <SiteFooter />
+      <Footer />
     </div>
   );
 }
 
-// ── Hero ─────────────────────────────────────────────────────────────────────
+// ── Section wrapper ───────────────────────────────────────────────────────────
 
-function Hero() {
+function Section({
+  id, eyebrow, title, subtitle, children, tint = false,
+}: {
+  id: string; eyebrow: string; title: string; subtitle?: string;
+  children: React.ReactNode; tint?: boolean;
+}) {
   return (
-    <section className="relative overflow-hidden border-b bg-background">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.5)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.5)_1px,transparent_1px)] bg-[size:40px_40px]" />
-      <div className="pointer-events-none absolute left-1/2 top-0 h-[500px] w-[800px] -translate-x-1/2 rounded-full bg-primary/[0.08] blur-3xl animate-[pulse_6s_ease-in-out_infinite]" />
-      <div className="pointer-events-none absolute -left-24 top-40 h-[320px] w-[320px] rounded-full bg-primary/[0.10] blur-3xl animate-[float_9s_ease-in-out_infinite]" />
-      <div className="pointer-events-none absolute -right-24 top-64 h-[280px] w-[280px] rounded-full bg-emerald-400/[0.10] blur-3xl animate-[float_11s_ease-in-out_infinite_reverse]" />
-
-      <div className="relative mx-auto max-w-7xl px-4 pb-0 pt-24 lg:px-8 lg:pt-32">
-        <div className="mx-auto max-w-3xl text-center">
-          {/* Live ticker */}
-          <div className="mb-8 flex justify-center animate-[fadeIn_0.6s_ease-out]">
-            <LiveTicker />
-          </div>
-
-          <Badge variant="outline" className="mb-5 rounded-full border-primary/30 px-4 py-1.5 text-sm text-primary">
-            <Zap className="mr-1.5 h-3.5 w-3.5" />
-            Multi-tenant SaaS · Built for India
-          </Badge>
-
-          <h1 className="text-5xl font-bold tracking-tight text-foreground md:text-6xl lg:text-7xl">
-            No more waiting.{" "}
-            <br className="hidden sm:block" />
-            <span className="bg-gradient-to-r from-primary via-primary to-emerald-500 bg-clip-text text-transparent">
-              Ever.
-            </span>
-          </h1>
-
-          <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-            Indus Service Flow unifies appointments, live queues, employees and
-            analytics — so hospitals, banks, clinics and retail stores can serve
-            more people with less chaos.
-          </p>
-
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-            <Button size="lg" asChild className="h-12 gap-2 px-7 text-base shadow-lg shadow-primary/20 transition hover:scale-[1.03] hover:shadow-primary/30">
-              <Link to="/register-organization">
-                Register your organization <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-            <Button size="lg" variant="outline" asChild className="h-12 px-7 text-base transition hover:scale-[1.03]">
-              <Link to="/book-appointment">Book an appointment</Link>
-            </Button>
-            <Button size="lg" variant="ghost" asChild className="h-12 px-6 text-base">
-              <Link to="/login" search={{ redirect: undefined }}>Sign in</Link>
-            </Button>
-          </div>
-
-          {/* Stats row */}
-          <div className="mx-auto mt-14 grid max-w-2xl grid-cols-2 gap-3 sm:grid-cols-4">
-            {stats.map((s, i) => (
-              <Reveal key={s.label} delay={i * 80}>
-                <div className="rounded-xl border bg-card px-4 py-4 text-center shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-                  <s.icon className="mx-auto mb-1.5 h-4 w-4 text-primary" />
-                  <div className="text-2xl font-bold tabular-nums text-foreground">
-                    <CountUp value={s.value} decimals={s.decimals ?? 0} />
-                    {s.suffix}
-                  </div>
-                  <div className="mt-0.5 text-xs text-muted-foreground">{s.label}</div>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-
-        {/* Hero image — flush to bottom of section */}
-        <Reveal className="mx-auto mt-16 max-w-5xl" delay={200}>
-          <div className="group relative overflow-hidden rounded-t-2xl border-x border-t shadow-2xl">
-            <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-t from-background/30 via-transparent to-transparent" />
-            <img
-              src={heroReception}
-              alt="Modern service reception"
-              className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.02]"
-            />
-          </div>
+    <section id={id} className={`py-24 ${tint ? "bg-[#0D9488]/[0.04]" : "bg-white"}`}>
+      <div className="mx-auto max-w-7xl px-4 lg:px-8">
+        <Reveal className="mx-auto mb-14 max-w-2xl text-center">
+          <span className="text-xs font-semibold uppercase tracking-widest text-[#0D9488]">{eyebrow}</span>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#134E4A] md:text-4xl">{title}</h2>
+          {subtitle && <p className="mt-4 leading-relaxed text-muted-foreground">{subtitle}</p>}
         </Reveal>
+        {children}
       </div>
 
       <style>{`
@@ -395,101 +241,118 @@ function Hero() {
   );
 }
 
-// ── Logo strip ────────────────────────────────────────────────────────────────
+// ── Hero ─────────────────────────────────────────────────────────────────────
 
-function LogoStrip() {
-  const looped = [...categories, ...categories];
+function Hero() {
   return (
-    <section className="border-b bg-muted/30 py-8">
-      <div className="mx-auto max-w-7xl px-4 lg:px-8">
-        <p className="mb-5 text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          Serving every industry that keeps people waiting
-        </p>
-        <div className="relative overflow-hidden">
-          <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-muted/30 to-transparent" />
-          <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-gradient-to-l from-muted/30 to-transparent" />
-          <div className="flex w-max animate-[marquee_22s_linear_infinite] gap-3 hover:[animation-play-state:paused]">
-            {looped.map((c, i) => (
-              <div
-                key={`${c.name}-${i}`}
-                className="flex flex-shrink-0 items-center gap-2.5 rounded-full border bg-background px-5 py-2.5 text-sm font-medium text-muted-foreground shadow-sm transition hover:border-primary/40 hover:text-foreground"
-              >
-                <c.icon className="h-4 w-4 text-primary" />
-                {c.name}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-      <style>{`
-        @keyframes marquee {
-          from { transform: translateX(0); }
-          to { transform: translateX(-50%); }
-        }
-      `}</style>
-    </section>
-  );
-}
+    <section className="relative overflow-hidden bg-[#0D9488]/[0.04]">
+      <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-4 py-20 lg:grid-cols-2 lg:px-8 lg:py-28">
+        <Reveal>
+          <h1 className="text-4xl font-bold leading-[1.1] tracking-tight text-[#134E4A] md:text-5xl lg:text-6xl">
+            Your Entire Operation's{" "}
+            <span className="text-[#0D9488]">Appointments &amp; Queues.</span>{" "}
+            Organized. Live. Simple.
+          </h1>
 
-// ── Section wrapper ───────────────────────────────────────────────────────────
+          <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
+            All bookings, live tokens, staff schedules and reports — stored in
+            one place and available the moment you need them.
+          </p>
 
-function Section({
-  id, eyebrow, title, subtitle, children, alt = false,
-}: {
-  id: string; eyebrow: string; title: string; subtitle?: string;
-  children: React.ReactNode; alt?: boolean;
-}) {
-  return (
-    <section id={id} className={`border-b py-24 ${alt ? "bg-muted/20" : "bg-background"}`}>
-      <div className="mx-auto max-w-7xl px-4 lg:px-8">
-        <Reveal className="mx-auto mb-14 max-w-2xl text-center">
-          <span className="text-xs font-semibold uppercase tracking-widest text-primary">{eyebrow}</span>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight md:text-4xl">{title}</h2>
-          {subtitle && <p className="mt-4 leading-relaxed text-muted-foreground">{subtitle}</p>}
+          <Button size="lg" asChild className="mt-8 h-12 gap-2 bg-[#0D9488] px-7 text-base shadow-lg shadow-[#0D9488]/20 hover:bg-[#0D9488]/90">
+            <Link to="/register-organization">
+              Start Free 14-Day Trial <ArrowRight className="h-4 w-4" />
+            </Link>
+          </Button>
         </Reveal>
-        {children}
+
+        <Reveal delay={150}>
+          <div className="overflow-hidden rounded-3xl shadow-2xl shadow-[#0D9488]/20">
+            <img
+              src={heroImage}
+              alt="A receptionist helping a customer at a service counter, with a queue wait-time display on the wall and other customers waiting in line"
+              className="h-full w-full object-cover"
+            />
+          </div>
+        </Reveal>
       </div>
     </section>
   );
 }
 
-// ── Features bento ────────────────────────────────────────────────────────────
+// ── What's broken today ──────────────────────────────────────────────────────
+
+function WhatsBroken() {
+  return (
+    <Section
+      id="problem"
+      eyebrow="Why this exists"
+      title="What's Broken Today"
+      subtitle="Walk-in service still runs on paper tokens and guesswork — except where it matters most."
+    >
+      <div className="grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+        {problems.map((p, i) => (
+          <Reveal key={p.title} delay={i * 70}>
+            <div className="mb-4 grid h-12 w-12 place-items-center rounded-xl bg-[#0D9488]/10 text-[#0D9488]">
+              <p.icon className="h-5 w-5" />
+            </div>
+            <div className="text-base font-semibold text-[#134E4A]">{p.title}</div>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{p.desc}</p>
+          </Reveal>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+// ── Built for ────────────────────────────────────────────────────────────────
+
+function BuiltFor() {
+  return (
+    <Section
+      id="industries"
+      eyebrow="Built for"
+      title="Built for Every Service Operation"
+      subtitle="Whether it's a ward, a counter, a trial room or a support desk — the workflow adapts to the service."
+      tint
+    >
+      <div className="grid gap-5 sm:grid-cols-2">
+        {builtFor.map((b, i) => (
+          <Reveal key={b.title} delay={i * 80}>
+            <div className="flex items-start gap-4 rounded-2xl bg-white p-6 shadow-sm">
+              <div className="grid h-11 w-11 flex-shrink-0 place-items-center rounded-xl bg-[#0D9488]/10 text-[#0D9488]">
+                <b.icon className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="text-base font-semibold text-[#134E4A]">{b.title}</div>
+                <p className="mt-1.5 text-sm text-muted-foreground">{b.desc}</p>
+              </div>
+            </div>
+          </Reveal>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+// ── Everything you need ──────────────────────────────────────────────────────
 
 function Features() {
   return (
     <Section
       id="features"
-      eyebrow="Features"
-      title="Everything a service operation needs"
-      subtitle="Every module ships role-aware, with audit trails, notifications and data exports — production-ready on day one."
+      eyebrow="Platform"
+      title="Everything You Need to Stay on Schedule"
+      subtitle="Every module ships role-aware, with audit trails, notifications and data exports."
     >
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
         {features.map((f, i) => (
-          <Reveal
-            key={f.title}
-            delay={i * 60}
-            className={`${f.highlight && i === 0 ? "lg:col-span-2 lg:row-span-1" : ""} ${
-              f.highlight && i === 1 ? "lg:col-span-2" : ""
-            }`}
-          >
-            <Card className="group h-full border-border/60 transition hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg">
-              <CardContent className="flex h-full flex-col p-6">
-                <div className="mb-4 grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary transition group-hover:scale-110 group-hover:bg-primary/15">
-                  <f.icon className="h-5 w-5" />
-                </div>
-                <div className={`font-semibold text-foreground ${f.highlight ? "text-base" : "text-sm"}`}>
-                  {f.title}
-                </div>
-                <p className={`mt-2 text-muted-foreground ${f.highlight ? "text-sm" : "text-xs"}`}>
-                  {f.desc}
-                </p>
-                {f.highlight && (
-                  <div className="mt-4 flex items-center gap-1 text-xs font-semibold text-primary">
-                    Core feature <ChevronRight className="h-3.5 w-3.5 transition group-hover:translate-x-1" />
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+          <Reveal key={f.title} delay={i * 60}>
+            <div className="mb-4 grid h-12 w-12 place-items-center rounded-xl bg-[#0891B2]/10 text-[#0891B2]">
+              <f.icon className="h-5 w-5" />
+            </div>
+            <div className="text-base font-semibold text-[#134E4A]">{f.title}</div>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{f.desc}</p>
           </Reveal>
         ))}
       </div>
@@ -497,230 +360,88 @@ function Features() {
   );
 }
 
-// ── How it works ──────────────────────────────────────────────────────────────
+// ── Process flow ──────────────────────────────────────────────────────────────
 
-function How() {
-  return (
-    <Section id="how" eyebrow="How it works" title="From sign-up to live in one day" alt>
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {howSteps.map((s, i) => (
-          <Reveal key={s.title} delay={i * 70} className="flex gap-4">
-            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border-2 border-primary bg-background text-sm font-bold text-primary">
-              {String(i + 1).padStart(2, "0")}
-            </div>
-            <div>
-              <div className="font-semibold text-foreground">{s.title}</div>
-              <p className="mt-1 text-sm text-muted-foreground">{s.desc}</p>
-            </div>
-          </Reveal>
-        ))}
-      </div>
-    </Section>
-  );
-}
-
-// ── Testimonials ──────────────────────────────────────────────────────────────
-
-function Testimonials() {
+function ProcessFlow() {
   return (
     <Section
-      id="testimonials"
-      eyebrow="Social proof"
-      title="Used by teams across India"
-      subtitle="Real results from organizations that replaced paper tokens and spreadsheets with Indus Service Flow."
+      id="how"
+      eyebrow="How it works"
+      title="Indus Service Flow Makes Service Simple"
+      subtitle="A simple system that brings booking, queueing and reporting together."
+      tint
     >
-      <div className="grid gap-6 md:grid-cols-3">
-        {testimonials.map((t, i) => (
-          <Reveal key={t.name} delay={i * 90}>
-            <Card className="h-full border-border/60 transition hover:-translate-y-1 hover:shadow-md">
-              <CardContent className="flex h-full flex-col p-6">
-                <div className="mb-4 flex gap-0.5">
-                  {Array.from({ length: t.stars }).map((_, j) => (
-                    <Star key={j} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                  ))}
-                </div>
-                <p className="flex-1 text-sm leading-relaxed text-foreground">"{t.text}"</p>
-                <div className="mt-5 border-t pt-4">
-                  <div className="text-sm font-semibold text-foreground">{t.name}</div>
-                  <div className="mt-0.5 text-xs text-muted-foreground">{t.role}</div>
-                </div>
-              </CardContent>
-            </Card>
-          </Reveal>
-        ))}
-      </div>
-
-      {/* Outcome strip */}
-      <div className="mt-10 grid gap-4 sm:grid-cols-3">
-        {[
-          { icon: TrendingDown, stat: "47%", label: "average wait time reduction" },
-          { icon: Clock, stat: "< 1 day", label: "from sign-up to going live" },
-          { icon: Users, stat: "98%", label: "customer satisfaction score" },
-        ].map((o, i) => (
-          <Reveal key={o.label} delay={i * 90}>
-            <div className="flex items-center gap-4 rounded-xl border bg-card px-6 py-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-              <o.icon className="h-8 w-8 flex-shrink-0 text-primary" />
-              <div>
-                <div className="text-2xl font-bold text-foreground">{o.stat}</div>
-                <div className="text-xs text-muted-foreground">{o.label}</div>
-              </div>
-            </div>
-          </Reveal>
-        ))}
-      </div>
-    </Section>
-  );
-}
-
-// ── Pricing ───────────────────────────────────────────────────────────────────
-
-function Pricing() {
-  const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
-
-  return (
-    <Section
-      id="pricing"
-      eyebrow="Pricing"
-      title="Plans that scale with your queue"
-      subtitle="Transparent pricing for every stage — from a single branch to a multi-city network. Switch or cancel anytime."
-    >
-      {/* Billing toggle */}
-      <Reveal className="mb-10 flex justify-center">
-        <div className="inline-flex items-center rounded-full border bg-muted/40 p-1 text-sm shadow-sm">
-          <button
-            onClick={() => setBillingCycle("monthly")}
-            className={`rounded-full px-4 py-2 font-medium transition-colors ${
-              billingCycle === "monthly"
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Monthly
-          </button>
-          <button
-            onClick={() => setBillingCycle("annual")}
-            className={`flex items-center gap-1.5 rounded-full px-4 py-2 font-medium transition-colors ${
-              billingCycle === "annual"
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Annual
-            <span className="rounded-full bg-green-50 px-1.5 py-0.5 text-[10px] font-semibold text-green-700 dark:bg-green-950 dark:text-green-400">
-              Save 20%
-            </span>
-          </button>
-        </div>
-      </Reveal>
-
-      <div className="grid gap-6 lg:grid-cols-3">
-        {PLANS.map((plan, i) => {
-          const price = billingCycle === "monthly" ? plan.priceMonthly : plan.priceAnnual;
-          return (
-            <Reveal key={plan.id} delay={i * 100}>
-              <Card
-                className={`relative flex h-full flex-col overflow-hidden transition hover:-translate-y-1 ${
-                  plan.popular ? "border-2 shadow-xl" : "border-border/60 hover:shadow-lg"
-                }`}
-                style={plan.popular ? { borderColor: plan.color } : undefined}
+      <Reveal>
+        <div className="relative flex flex-wrap items-start justify-center gap-x-2 gap-y-10">
+          {flowSteps.map((s, i) => (
+            <div key={s.title} className="relative flex flex-1 basis-28 flex-col items-center text-center">
+              <div
+                className="grid h-16 w-16 place-items-center rounded-2xl text-white shadow-md"
+                style={{ background: i % 2 === 0 ? TEAL : TEAL_DARK }}
               >
-                {plan.popular && (
-                  <>
-                    <div
-                      className="pointer-events-none absolute -top-16 left-1/2 h-40 w-64 -translate-x-1/2 rounded-full blur-3xl"
-                      style={{ background: `${plan.color}33` }}
-                    />
-                    <div
-                      className="absolute -top-3 left-1/2 z-10 inline-flex -translate-x-1/2 items-center gap-1 rounded-full px-3 py-0.5 text-[10px] font-semibold text-white shadow-sm"
-                      style={{ background: plan.color }}
-                    >
-                      <Sparkles className="h-3 w-3" />
-                      MOST POPULAR
-                    </div>
-                  </>
-                )}
-
-                <CardContent className="relative flex h-full flex-col p-7">
-                  <div
-                    className="mb-4 grid h-11 w-11 place-items-center rounded-xl"
-                    style={{ background: `${plan.color}1A` }}
-                  >
-                    <plan.icon className="h-5 w-5" style={{ color: plan.color }} />
-                  </div>
-
-                  <div className="text-lg font-semibold text-foreground">{plan.name}</div>
-                  <p className="mt-1 text-sm text-muted-foreground">{plan.tagline}</p>
-
-                  <div className="mt-6 flex items-baseline gap-1">
-                    <span className="text-4xl font-bold tracking-tight text-foreground">
-                      {fmtINR(price)}
-                    </span>
-                    <span className="text-sm text-muted-foreground">/ month</span>
-                  </div>
-                  {billingCycle === "annual" ? (
-                    <p className="mt-1 text-xs text-muted-foreground">billed annually ({fmtINR(price * 12)}/yr)</p>
-                  ) : (
-                    <p className="mt-1 text-xs text-muted-foreground">billed monthly</p>
-                  )}
-
-                  <div className="mt-5 flex items-center gap-3 rounded-lg bg-muted/40 px-3 py-2.5 text-xs">
-                    <div className="flex-1">
-                      <p className="uppercase tracking-wide text-muted-foreground">Employees</p>
-                      <p className="mt-0.5 font-semibold text-foreground">{plan.employeeLimit}</p>
-                    </div>
-                    <div className="h-7 w-px bg-border" />
-                    <div className="flex-1">
-                      <p className="uppercase tracking-wide text-muted-foreground">Ongoing queues</p>
-                      <p className="mt-0.5 font-semibold text-foreground">{plan.queueLimit}</p>
-                    </div>
-                  </div>
-
-                  <ul className="mt-6 flex-1 space-y-3">
-                    {plan.features.map((f) => (
-                      <li key={f} className="flex items-start gap-2.5 text-sm text-foreground">
-                        <Check className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: plan.color }} />
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-
-                  <Button
-                    asChild
-                    className="mt-7 h-11 w-full gap-2 text-sm"
-                    variant={plan.popular ? "default" : "outline"}
-                  >
-                    <Link to="/register-organization">
-                      Choose {plan.name} <ArrowRight className="h-4 w-4" />
-                    </Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            </Reveal>
-          );
-        })}
-      </div>
-
-      <Reveal delay={300} className="mt-10 text-center text-sm text-muted-foreground">
-        Need a custom setup for multiple cities or a government tender? {" "}
-        <a href="#contact" className="font-semibold text-primary hover:underline">
-          Talk to our team
-        </a>
-        .
+                <s.icon className="h-6 w-6" />
+              </div>
+              <span className="mt-3 text-sm font-semibold text-[#134E4A]">{s.title}</span>
+              {i < flowSteps.length - 1 && (
+                <div className="absolute left-[calc(50%+2rem)] top-8 hidden h-px w-[calc(100%-4rem)] bg-[#0D9488]/30 sm:block" />
+              )}
+            </div>
+          ))}
+        </div>
+        <p className="mx-auto mt-10 max-w-xl text-center text-sm text-muted-foreground">
+          No paper tokens. No guesswork. Just one structured flow, start to finish.
+        </p>
       </Reveal>
     </Section>
   );
 }
 
-// ── Portals ───────────────────────────────────────────────────────────────────
+// ── Mini dashboard preview used inside portal cards ──────────────────────────
+
+function MiniDashboard({ variant, accent }: { variant: "super_admin" | "org_admin" | "employee"; accent: string }) {
+  if (variant === "super_admin") {
+    return (
+      <div className="grid grid-cols-3 gap-1.5">
+        {["Orgs", "Requests", "Revenue"].map((label) => (
+          <div key={label} className="rounded-lg bg-muted/60 p-2">
+            <div className="font-mono text-sm font-bold tabular-nums text-foreground">{label === "Requests" ? "6" : label === "Orgs" ? "128" : "₹—"}</div>
+            <div className="text-[9px] text-muted-foreground">{label}</div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  if (variant === "org_admin") {
+    return (
+      <div className="space-y-1.5">
+        <div className="flex h-8 items-end gap-1">
+          {[40, 70, 55, 90, 60].map((h, i) => (
+            <div key={i} className="flex-1 rounded-t-sm" style={{ height: `${h}%`, background: `${accent}55` }} />
+          ))}
+        </div>
+        <div className="flex justify-between text-[9px] text-muted-foreground">
+          <span>Employees: 14</span><span>Queues: 3</span>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-center gap-2 rounded-lg bg-muted/60 p-2.5">
+      <div className="grid h-7 w-7 place-items-center rounded-md text-white" style={{ background: accent }}>
+        <span className="font-mono text-[10px] font-bold">#12</span>
+      </div>
+      <div className="text-[10px] text-muted-foreground">Serving now · Counter 2</div>
+    </div>
+  );
+}
 
 function Portals() {
   return (
     <Section
       id="portals"
       eyebrow="Portals"
-      title="Three purpose-built experiences"
-      subtitle="Each role gets a focused workspace — not a watered-down version of someone else's."
-      alt
+      title="Three Purpose-Built Experiences"
+      subtitle="Each role gets a focused workspace, with a live preview of what it looks like."
     >
       <div className="grid gap-5 md:grid-cols-3">
         {portals.map((p, i) => (
@@ -728,22 +449,27 @@ function Portals() {
             <Dialog>
               <DialogTrigger asChild>
                 <button className="group block w-full text-left">
-                  <Card className="h-full cursor-pointer border-border/60 transition hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg">
+                  <Card className="h-full cursor-pointer border-border/60 transition hover:-translate-y-1 hover:shadow-lg" style={{ borderColor: `${p.accent}22` }}>
                     <CardContent className="flex h-full flex-col p-6">
-                      <div className={`mb-4 grid h-11 w-11 place-items-center rounded-xl text-sm font-bold ${p.color}`}>
+                      <div className="mb-4 grid h-11 w-11 place-items-center rounded-xl" style={{ background: `${p.accent}1A`, color: p.accent }}>
                         <p.icon className="h-5 w-5" />
                       </div>
-                      <div className="text-base font-semibold text-foreground">{p.title}</div>
-                      <p className="mt-2 flex-1 text-sm text-muted-foreground">{p.desc}</p>
+                      <div className="text-base font-semibold text-[#134E4A]">{p.title}</div>
+                      <p className="mt-2 text-sm text-muted-foreground">{p.desc}</p>
+
+                      <div className="mt-4 rounded-xl border bg-white/60 p-3">
+                        <MiniDashboard variant={p.mock} accent={p.accent} />
+                      </div>
+
                       <ul className="mt-4 space-y-2">
                         {p.points.map((pt) => (
                           <li key={pt} className="flex items-start gap-2 text-xs text-muted-foreground">
-                            <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                            <Check className="mt-0.5 h-3.5 w-3.5 shrink-0" style={{ color: p.accent }} />
                             {pt}
                           </li>
                         ))}
                       </ul>
-                      <div className="mt-5 flex items-center text-xs font-semibold text-primary">
+                      <div className="mt-5 flex items-center text-xs font-semibold" style={{ color: p.accent }}>
                         Learn more <ChevronRight className="ml-1 h-3.5 w-3.5 transition group-hover:translate-x-1" />
                       </div>
                     </CardContent>
@@ -758,7 +484,7 @@ function Portals() {
                 <ul className="mt-3 space-y-2.5 text-sm">
                   {p.points.map((pt) => (
                     <li key={pt} className="flex items-start gap-2.5">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                      <Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: p.accent }} />
                       {pt}
                     </li>
                   ))}
@@ -778,6 +504,14 @@ function Portals() {
           </Reveal>
         ))}
       </div>
+
+      <Reveal delay={300} className="mt-10 text-center text-sm text-muted-foreground">
+        Need a custom setup for multiple cities or a government tender? {" "}
+        <a href="#contact" className="font-semibold text-primary hover:underline">
+          Talk to our team
+        </a>
+        .
+      </Reveal>
     </Section>
   );
 }
@@ -789,21 +523,18 @@ function Security() {
     <Section
       id="security"
       eyebrow="Security"
-      title="Enterprise-grade by default"
-      subtitle="Security is not a feature request — it ships with every account, at every plan."
+      title="Enterprise-Grade by Default"
+      subtitle="Security ships with every account, at every plan — not as an add-on."
+      tint
     >
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
         {security.map((s, i) => (
           <Reveal key={s.title} delay={i * 60}>
-            <Card className="h-full border-border/60 transition hover:-translate-y-1 hover:shadow-md">
-              <CardContent className="p-6">
-                <div className="mb-3 grid h-9 w-9 place-items-center rounded-lg bg-muted text-muted-foreground">
-                  <s.icon className="h-4 w-4" />
-                </div>
-                <div className="font-semibold text-foreground">{s.title}</div>
-                <p className="mt-1.5 text-sm text-muted-foreground">{s.desc}</p>
-              </CardContent>
-            </Card>
+            <div className="mb-4 grid h-12 w-12 place-items-center rounded-xl bg-white text-[#0D9488] shadow-sm">
+              <s.icon className="h-5 w-5" />
+            </div>
+            <div className="text-base font-semibold text-[#134E4A]">{s.title}</div>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{s.desc}</p>
           </Reveal>
         ))}
       </div>
@@ -824,8 +555,8 @@ function Contact() {
       return;
     }
     setSending(true);
-    db.insert("contact_messages", { id: uid("msg"), ...form, status: "new", created_at: new Date().toISOString() });
-    db.insert("notifications", { id: uid("n"), role: "super_admin", title: "New contact message", message: `${form.name}: ${form.subject || "(no subject)"}`, read: false, created_at: new Date().toISOString() });
+    db.insert("contact_messages", { id: uid("msg"), ...form, status: "new", created_at: new Date().toISOString() } as never);
+    db.insert("notifications", { id: uid("n"), role: "super_admin", title: "New contact message", message: `${form.name}: ${form.subject || "(no subject)"}`, read: false, created_at: new Date().toISOString() } as never);
     setTimeout(() => {
       setSending(false);
       setForm({ name: "", email: "", subject: "", message: "" });
@@ -834,39 +565,33 @@ function Contact() {
   }, [form]);
 
   return (
-    <section id="contact" className="border-b bg-muted/20 py-24">
+    <section id="contact" className="bg-white py-24">
       <div className="mx-auto max-w-7xl px-4 lg:px-8">
         <div className="grid gap-16 lg:grid-cols-2 lg:items-start">
-
-          {/* Left copy */}
           <Reveal>
-            <span className="text-xs font-semibold uppercase tracking-widest text-primary">Contact</span>
-            <h2 className="mt-3 text-3xl font-bold tracking-tight md:text-4xl">
-              Talk to our team
-            </h2>
+            <span className="text-xs font-semibold uppercase tracking-widest text-[#0D9488]">Contact</span>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#134E4A] md:text-4xl">Talk to Our Team</h2>
             <p className="mt-4 leading-relaxed text-muted-foreground">
-              Tell us about your operation and we'll come back with a tailored
-              walkthrough — no sales script, no commitment.
+              Tell us about your operation and we'll walk you through the platform —
+              no sales script, no commitment.
             </p>
 
-            <div className="mt-10 space-y-5">
-              {[
-                { label: "Response time", val: "Within one business day" },
-                { label: "Onboarding", val: "Dedicated setup support for every new org" },
-                { label: "Trial", val: "Full-featured, no credit card needed" },
-              ].map((item) => (
-                <div key={item.label} className="flex items-start gap-3">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                  <div>
-                    <div className="text-sm font-semibold text-foreground">{item.label}</div>
-                    <div className="text-sm text-muted-foreground">{item.val}</div>
-                  </div>
-                </div>
-              ))}
+            <div className="mt-8 space-y-4">
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <Mail className="h-4 w-4 text-[#0D9488]" /> hello@indusserviceflow.in
+              </div>
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <Phone className="h-4 w-4 text-[#0D9488]" /> +91 (0) 40 000 0000
+              </div>
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <MapPin className="h-4 w-4 text-[#0D9488]" /> Hyderabad, Telangana, India
+              </div>
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <Clock className="h-4 w-4 text-[#0D9488]" /> Mon–Sat, 9:30 AM – 6:30 PM IST
+              </div>
             </div>
           </Reveal>
 
-          {/* Right form */}
           <Reveal delay={120}>
             <Card className="shadow-sm">
               <CardContent className="p-6">
@@ -889,8 +614,8 @@ function Contact() {
                     <Label htmlFor="c-msg">Message</Label>
                     <Textarea id="c-msg" rows={5} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} placeholder="A few lines about your setup..." />
                   </div>
-                  <Button type="submit" disabled={sending} className="w-full">
-                    {sending ? "Sending…" : "Send message"}
+                  <Button type="submit" disabled={sending} className="w-full gap-2 bg-[#0D9488] hover:bg-[#0D9488]/90">
+                    <Send className="h-4 w-4" /> {sending ? "Sending…" : "Send message"}
                   </Button>
                 </form>
               </CardContent>
@@ -899,5 +624,152 @@ function Contact() {
         </div>
       </div>
     </section>
+  );
+}
+
+// ── Plans & Features ─────────────────────────────────────────────────────────
+// All three plan buttons link straight to /register-organization (no search
+// param), same as the Hero and footer CTAs, so navigation isn't blocked by
+// route search validation.
+
+function Pricing() {
+  return (
+    <section id="pricing" className="bg-white py-24">
+      <div className="mx-auto max-w-7xl px-4 lg:px-8">
+        <Reveal className="mx-auto mb-14 max-w-2xl text-center">
+          <h2 className="text-3xl font-bold tracking-tight text-[#134E4A] md:text-4xl">Plans &amp; Features</h2>
+          <p className="mt-4 leading-relaxed text-muted-foreground">
+            Choose the perfect plan for your organization's queue management needs.
+          </p>
+        </Reveal>
+
+        <div className="grid gap-6 lg:grid-cols-3">
+          {plans.map((plan, i) => (
+            <Reveal key={plan.id} delay={i * 100}>
+              <div
+                className={`relative flex h-full flex-col rounded-2xl bg-white p-7 ${
+                  plan.popular ? "border-2 shadow-xl" : "border shadow-sm"
+                }`}
+                style={plan.popular ? { borderColor: plan.color } : undefined}
+              >
+                {plan.popular && (
+                  <div
+                    className="absolute -top-3 left-1/2 z-10 inline-flex -translate-x-1/2 items-center gap-1 rounded-full px-3 py-1 text-[11px] font-semibold text-white shadow-sm"
+                    style={{ background: TEAL_DARK }}
+                  >
+                    <Star className="h-3 w-3 fill-current" /> Most Popular
+                  </div>
+                )}
+
+                <div className="text-xl font-bold text-[#134E4A]">{plan.name}</div>
+                <div className="mt-3 flex items-baseline gap-1">
+                  <span className="font-mono text-3xl font-bold text-[#0D9488]">{plan.price}</span>
+                  <span className="text-sm text-muted-foreground">{plan.cadence}</span>
+                </div>
+
+                <div className="mt-6 flex items-center justify-between border-t py-3 text-sm">
+                  <span className="text-muted-foreground">Counters</span>
+                  <span className="font-medium text-[#134E4A]">{plan.counters}</span>
+                </div>
+
+                {/* Feature rows: not-included features are faded (font-light + low opacity),
+                    included features stay full weight; the "not included" mark is red. */}
+                <div className="space-y-0">
+                  {featureRows.map((row, idx) => {
+                    const isIncluded = plan.included[idx];
+                    return (
+                      <div key={row} className="flex items-center justify-between border-t py-3 text-sm">
+                        <span
+                          className={
+                            isIncluded
+                              ? "text-foreground"
+                              : "font-light text-muted-foreground/50"
+                          }
+                        >
+                          {row}
+                        </span>
+                        {isIncluded ? (
+                          <Check className="h-4 w-4 flex-shrink-0" style={{ color: plan.color }} />
+                        ) : (
+                          <X className="h-4 w-4 flex-shrink-0 text-red-500" />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="flex items-center justify-between border-y py-3 text-sm">
+                  <span className="text-muted-foreground">Support</span>
+                  <span className="font-medium text-[#134E4A]">{plan.support}</span>
+                </div>
+
+                <Button
+                  asChild
+                  className={`mt-7 h-11 w-full gap-2 text-sm ${plan.filled ? "" : "text-[#0D9488]"}`}
+                  variant={plan.filled ? "default" : "outline"}
+                  style={plan.filled ? { background: "#0D9488" } : { borderColor: "#0D9488" }}
+                >
+                  <Link to="/register-organization">
+                    {plan.cta}
+                  </Link>
+                </Button>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ── Footer ────────────────────────────────────────────────────────────────────
+
+function Footer() {
+  return (
+    <footer className="bg-[#134E4A] pt-16 text-white/80">
+      <div className="mx-auto max-w-7xl px-4 lg:px-8">
+        <div className="grid gap-12 pb-12 sm:grid-cols-2 lg:grid-cols-4">
+          <div>
+            <div className="flex items-center gap-2 text-lg font-bold text-white">
+              Indus Service Flow
+            </div>
+            <p className="mt-3 max-w-xs text-sm text-white/60">
+              Helping organizations manage appointments and queues, without the wait.
+            </p>
+            <div className="mt-5 flex gap-3">
+              <Button asChild size="sm" className="h-9 bg-[#0D9488] px-4 text-xs hover:bg-[#0D9488]/90">
+                <Link to="/login" search={{ redirect: undefined }}>Log In</Link>
+              </Button>
+              <Button asChild size="sm" variant="outline" className="h-9 border-white/25 bg-transparent px-4 text-xs text-white hover:bg-white/10 hover:text-white">
+                <Link to="/register-organization">Sign Up</Link>
+              </Button>
+            </div>
+          </div>
+
+          <div>
+            <div className="text-sm font-semibold text-white">Company</div>
+            <ul className="mt-4 space-y-2.5 text-sm text-white/60">
+              <li><a href="#industries" className="hover:text-white">About Us</a></li>
+              <li><a href="#contact" className="hover:text-white">Contact Us</a></li>
+              <li><a href="#pricing" className="hover:text-white">Plans &amp; Pricing</a></li>
+              <li><a href="#features" className="hover:text-white">Features</a></li>
+            </ul>
+          </div>
+
+          <div>
+            <div className="text-sm font-semibold text-white">Legal</div>
+            <ul className="mt-4 space-y-2.5 text-sm text-white/60">
+              <li><a href="#" className="hover:text-white">Privacy Policy</a></li>
+              <li><a href="#" className="hover:text-white">Terms of Service</a></li>
+              <li><a href="#security" className="hover:text-white">Data Security</a></li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="border-t border-white/10 py-6 text-center text-xs text-white/50">
+          © {new Date().getFullYear()} Indus Service Flow. All rights reserved.
+        </div>
+      </div>
+    </footer>
   );
 }

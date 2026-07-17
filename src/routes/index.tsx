@@ -223,6 +223,20 @@ function Section({
         </Reveal>
         {children}
       </div>
+
+      <style>{`
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-24px); }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(-6px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+        }
+      `}</style>
     </section>
   );
 }
@@ -490,6 +504,14 @@ function Portals() {
           </Reveal>
         ))}
       </div>
+
+      <Reveal delay={300} className="mt-10 text-center text-sm text-muted-foreground">
+        Need a custom setup for multiple cities or a government tender? {" "}
+        <a href="#contact" className="font-semibold text-primary hover:underline">
+          Talk to our team
+        </a>
+        .
+      </Reveal>
     </Section>
   );
 }

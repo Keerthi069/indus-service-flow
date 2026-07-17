@@ -31,9 +31,9 @@ export function SiteHeader() {
           <Button size="icon" variant="ghost" onClick={toggle} aria-label="Toggle theme">
             {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
-          <Button asChild size="sm" variant="ghost"><Link to="/login">Login</Link></Button>
-          <Button asChild size="sm" variant="outline"><Link to="/register-organization">Register Organization</Link></Button>
-          <Button asChild size="sm"><Link to="/book-appointment">Book Appointment</Link></Button>
+          <Link to="/login" search={{ redirect: undefined }}><Button size="sm" variant="ghost">Login</Button></Link>
+          <Link to="/register-organization"><Button size="sm" variant="outline">Register Organization</Button></Link>
+          <Link to="/book-appointment"><Button size="sm">Book Appointment</Button></Link>
         </div>
       </div>
     </header>

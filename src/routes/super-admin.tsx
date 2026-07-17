@@ -5,12 +5,13 @@ import { PortalShell, type NavItem } from "@/components/portal/PortalShell";
 const items: NavItem[] = [
   { to: "/super-admin", label: "Dashboard", icon: LayoutDashboard },
   { to: "/super-admin/categories", label: "Categories", icon: FolderTree },
-  { to: "/super-admin/requests", label: "Organization Requests", icon: ShieldCheck },
+  { to: "/super-admin/service-categories", label: "Service Categories", icon: FolderTree },
   { to: "/super-admin/organizations", label: "Organizations", icon: Building2 },
   { to: "/super-admin/users", label: "Users", icon: Users },
   { to: "/super-admin/audit", label: "Audit Logs", icon: Activity },
   { to: "/super-admin/reports", label: "Reports", icon: FileBarChart },
-  { to: "/super-admin/settings", label: "Settings", icon: Settings },
+  { to: "/super-admin/subscriptions", label: "Subscriptions", icon: FileBarChart },
+  {to: "/super-admin/plans", label: "Plans", icon: FileBarChart},
 ];
 
 export const Route = createFileRoute("/super-admin")({

@@ -1,117 +1,378 @@
+import React, { useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
-import { toast } from "sonner";
-import { Waves, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { db, uid } from "@/lib/mock/db";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "sonner";
+import {
+  Building2,
+  Briefcase,
+  User,
+  Phone,
+  Mail,
+  MapPin,
+  Landmark,
+  Globe,
+  Hash,
+  ArrowRight,
+} from "lucide-react";
 
 export const Route = createFileRoute("/register-organization")({
-  head: () => ({ meta: [{ title: "Register Organization · Indus Service Flow" }, { name: "description", content: "Apply to onboard your organization onto the Indus Service Flow platform." }] }),
-  component: RegisterOrg,
+  component: RegisterOrganization,
 });
 
 const CATEGORIES = [
-  { value: "hospital", label: "Hospital" },
-  { value: "clinic", label: "Clinic" },
-  { value: "bank", label: "Bank" },
-  { value: "retail", label: "Retail Store" },
-  { value: "support", label: "Customer Support Center" },
+  "Hospital",
+  "Clinic",
+  "Bank",
+  "Retail Store",
+  "Customer Support Center",
 ];
 
-function RegisterOrg() {
-  const nav = useNavigate();
-  const [f, setF] = useState({
-    name: "", category: "", contact_person: "", email: "", mobile: "",
-    address: "", city: "", state: "", country: "India", password: "", confirm: "",
-  });
-  const [submitting, setSubmitting] = useState(false);
+// India's current 28 states (Jammu & Kashmir moved to a union territory in 2019,
+// which is why the historical "29 states" figure is now 28).
+const INDIAN_STATES = [
+  "Andhra Pradesh",
+  "Arunachal Pradesh",
+  "Assam",
+  "Bihar",
+  "Chhattisgarh",
+  "Goa",
+  "Gujarat",
+  "Haryana",
+  "Himachal Pradesh",
+  "Jharkhand",
+  "Karnataka",
+  "Kerala",
+  "Madhya Pradesh",
+  "Maharashtra",
+  "Manipur",
+  "Meghalaya",
+  "Mizoram",
+  "Nagaland",
+  "Odisha",
+  "Punjab",
+  "Rajasthan",
+  "Sikkim",
+  "Tamil Nadu",
+  "Telangana",
+  "Tripura",
+  "Uttar Pradesh",
+  "Uttarakhand",
+  "West Bengal",
+];
 
-  function update<K extends keyof typeof f>(k: K, v: string) { setF(prev => ({ ...prev, [k]: v })); }
+function RegisterOrganization() {
+  const navigate = useNavigate();
 
-  function submit(e: React.FormEvent) {
+  const [orgName, setOrgName] = useState("");
+  const [category, setCategory] = useState("");
+  // Organisation's OWN contact details — a general helpline/front-desk
+  // number and a role-based inbox (info@/contact@/helpdesk@), distinct
+  // from the individual contact person's personal mobile/email below.
+  // Maps to Organization.org_mobile / Organization.org_email in db.ts.
+  const [orgMobile, setOrgMobile] = useState("");
+  const [orgEmail, setOrgEmail] = useState("");
+  const [contactPerson, setContactPerson] = useState("");
+  const [mobile, setMobile] = useState("");
+  const [email, setEmail] = useState("");
+  const [address, setAddress] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+  const [pincode, setPincode] = useState("");
+
+  const submit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    for (const [k, v] of Object.entries(f)) if (!v) { toast.error(`Please fill in ${k.replace("_", " ")}`); return; }
-    if (f.password.length < 6) { toast.error("Password must be at least 6 characters"); return; }
-    if (f.password !== f.confirm) { toast.error("Passwords do not match"); return; }
 
-    setSubmitting(true);
-    const id = uid("req");
-    const created_at = new Date().toISOString();
+    if (!orgName.trim()) {
+      toast.error("Enter the organisation name");
+      return;
+    }
+    if (!category) {
+      toast.error("Select an organisation category");
+      return;
+    }
+    if (!orgMobile.trim()) {
+      toast.error("Enter the organisation's mobile number");
+      return;
+    }
+    if (!orgEmail.trim()) {
+      toast.error("Enter the organisation's email address");
+      return;
+    }
+    if (!contactPerson.trim()) {
+      toast.error("Enter the contact person's name");
+      return;
+    }
+    if (!mobile.trim()) {
+      toast.error("Enter a mobile number");
+      return;
+    }
+    if (!email.trim()) {
+      toast.error("Enter an email address");
+      return;
+    }
+    if (!address.trim()) {
+      toast.error("Enter the organisation address");
+      return;
+    }
+    if (!city.trim()) {
+      toast.error("Enter a city");
+      return;
+    }
+    if (!pincode.trim()) {
+      toast.error("Enter a pincode");
+      return;
+    }
+    if (!/^\d{6}$/.test(pincode.trim())) {
+      toast.error("Enter a valid 6-digit pincode");
+      return;
+    }
+    if (!state) {
+      toast.error("Select a state");
+      return;
+    }
+
+    toast.success("Organisation registered");
+
     setTimeout(() => {
-      db.insert("org_requests", {
-        id, name: f.name, category: f.category, contact_person: f.contact_person,
-        email: f.email, mobile: f.mobile, address: f.address, city: f.city, state: f.state, country: f.country,
-        logo: "", plan: "professional", status: "pending", created_at,
-      });
-      db.insert("notifications", {
-        id: uid("n"), role: "super_admin", title: "New organization request",
-        message: `${f.name} (${f.category}) submitted a registration request.`,
-        read: false, created_at,
-      });
-      setSubmitting(false);
-      toast.success("Application submitted. You'll receive an email after approval.");
-      nav({ to: "/" });
-    }, 600);
-  }
+      navigate({ to: "/login", search: { redirect: undefined } });
+    }, 1000);
+  };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="border-b border-border/60 bg-card">
-        <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4">
-          <Link to="/" className="flex items-center gap-2 font-display font-bold">
-            <span className="grid h-9 w-9 place-items-center rounded-lg bg-primary text-primary-foreground"><Waves className="h-5 w-5" /></span>
-            Indus Service Flow
-          </Link>
-          <Button asChild variant="ghost" size="sm"><Link to="/login" search={{ redirect: undefined }}>Already have access? Login</Link></Button>
-        </div>
-      </div>
-      <div className="mx-auto max-w-3xl px-4 py-10">
-        <Button asChild variant="ghost" size="sm" className="-ml-2 mb-4"><Link to="/">← Back to home</Link></Button>
-        <div className="mb-6 flex items-center gap-3">
-          <span className="grid h-12 w-12 place-items-center rounded-xl bg-primary/10 text-primary"><Building2 className="h-6 w-6" /></span>
-          <div>
-            <h1 className="font-display text-3xl font-bold">Register your organization</h1>
-            <p className="text-sm text-muted-foreground">Submit details below. A super admin will review and approve your request.</p>
+    <div className="min-h-screen bg-muted/30 flex items-center justify-center px-4 py-10">
+      <div className="w-full max-w-2xl">
+
+        {/* Card */}
+        <div className="rounded-2xl border bg-card shadow-sm">
+          <div className="px-8 pt-8 pb-2 text-center">
+            <h1 className="text-xl font-semibold tracking-tight">
+              Register your organisation
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Set up queues, appointments, and staff in one place.
+            </p>
           </div>
+
+          <form onSubmit={submit} className="px-8 pb-8 pt-6 space-y-8">
+            {/* Section: organisation */}
+            <FormSection label="Organisation">
+              <IconInput
+                icon={Building2}
+                placeholder="Organisation name"
+                value={orgName}
+                onChange={(e) => setOrgName(e.target.value)}
+                required
+              />
+              <IconSelect
+                icon={Briefcase}
+                value={category}
+                onValueChange={setCategory}
+                placeholder="Organisation category"
+              >
+                {CATEGORIES.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {c}
+                  </SelectItem>
+                ))}
+              </IconSelect>
+            </FormSection>
+
+            {/* Section: organisation's own contact details (helpline /
+                general inbox — separate from the individual contact
+                person's personal mobile/email in the section below) */}
+            <FormSection label="Organisation contact">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <IconInput
+                  icon={Phone}
+                  type="tel"
+                  placeholder="Organisation mobile / helpline"
+                  value={orgMobile}
+                  onChange={(e) => setOrgMobile(e.target.value)}
+                  required
+                />
+                <IconInput
+                  icon={Mail}
+                  type="email"
+                  placeholder="Organisation email"
+                  value={orgEmail}
+                  onChange={(e) => setOrgEmail(e.target.value)}
+                  required
+                />
+              </div>
+            </FormSection>
+
+            {/* Section: contact */}
+            <FormSection label="Contact person">
+              <IconInput
+                icon={User}
+                placeholder="Contact person name"
+                value={contactPerson}
+                onChange={(e) => setContactPerson(e.target.value)}
+                required
+              />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <IconInput
+                  icon={Phone}
+                  type="tel"
+                  placeholder="Mobile number"
+                  value={mobile}
+                  onChange={(e) => setMobile(e.target.value)}
+                  required
+                />
+                <IconInput
+                  icon={Mail}
+                  type="email"
+                  placeholder="Email address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+            </FormSection>
+
+            {/* Section: location */}
+            <FormSection label="Location">
+              <div className="relative">
+                <MapPin className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Textarea
+                  placeholder="Address"
+                  className="min-h-[72px] pl-9 pt-2.5 resize-none"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <IconInput
+                  icon={Landmark}
+                  placeholder="City"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  required
+                />
+                <IconInput
+                  icon={Hash}
+                  placeholder="Pincode"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={pincode}
+                  onChange={(e) => setPincode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <IconSelect
+                  icon={MapPin}
+                  value={state}
+                  onValueChange={setState}
+                  placeholder="State"
+                >
+                  {INDIAN_STATES.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s}
+                    </SelectItem>
+                  ))}
+                </IconSelect>
+
+                {/* Country — fixed to India, no dropdown */}
+                <div className="relative">
+                  <Globe className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value="India"
+                    readOnly
+                    disabled
+                    className="h-10 pl-9 disabled:opacity-100 disabled:cursor-default bg-muted/40"
+                  />
+                </div>
+              </div>
+            </FormSection>
+
+            <Button
+              type="submit"
+              className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+            >
+              Register organisation
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </form>
         </div>
-        <Card>
-          <CardHeader><CardTitle className="text-base">Organization details</CardTitle><CardDescription>All fields are required. Status will be set to <b>Pending Approval</b>.</CardDescription></CardHeader>
-          <CardContent>
-            <form className="grid gap-4" onSubmit={submit}>
-              <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Organization Name"><Input value={f.name} onChange={e => update("name", e.target.value)} placeholder="Apollo Hospitals Chennai" /></Field>
-                <Field label="Category">
-                  <Select value={f.category} onValueChange={v => update("category", v)}>
-                    <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
-                    <SelectContent>{CATEGORIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
-                  </Select>
-                </Field>
-                <Field label="Contact Person"><Input value={f.contact_person} onChange={e => update("contact_person", e.target.value)} placeholder="Dr. Ramesh Iyer" /></Field>
-                <Field label="Email"><Input type="email" value={f.email} onChange={e => update("email", e.target.value)} placeholder="admin@your-org.in" /></Field>
-                <Field label="Mobile"><Input value={f.mobile} onChange={e => update("mobile", e.target.value)} placeholder="+91 98xxx xxxxx" /></Field>
-                <Field label="City"><Input value={f.city} onChange={e => update("city", e.target.value)} placeholder="Chennai" /></Field>
-                <Field label="State"><Input value={f.state} onChange={e => update("state", e.target.value)} placeholder="Tamil Nadu" /></Field>
-                <Field label="Country"><Input value={f.country} onChange={e => update("country", e.target.value)} /></Field>
-              </div>
-              <Field label="Address"><Textarea rows={2} value={f.address} onChange={e => update("address", e.target.value)} placeholder="21, Greams Lane" /></Field>
-              <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Password"><Input type="password" value={f.password} onChange={e => update("password", e.target.value)} /></Field>
-                <Field label="Confirm Password"><Input type="password" value={f.confirm} onChange={e => update("confirm", e.target.value)} /></Field>
-              </div>
-              <Button disabled={submitting} type="submit" className="justify-self-start">{submitting ? "Submitting..." : "Submit for approval"}</Button>
-            </form>
-          </CardContent>
-        </Card>
+
+        <p className="text-center text-sm text-muted-foreground mt-6">
+          Already registered?{" "}
+          <Link to="/login" search={{ redirect: undefined }} className="font-medium text-foreground hover:underline">
+            Sign in
+          </Link>
+        </p>
       </div>
     </div>
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <div className="grid gap-1.5"><Label>{label}</Label>{children}</div>;
+function FormSection({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          {label}
+        </span>
+        <div className="h-px flex-1 bg-border" />
+      </div>
+      <div className="space-y-4">{children}</div>
+    </div>
+  );
+}
+
+function IconInput({
+  icon: Icon,
+  ...props
+}: React.ComponentProps<typeof Input> & { icon: React.ElementType }) {
+  return (
+    <div className="relative">
+      <Icon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <Input className="h-10 pl-9" {...props} />
+    </div>
+  );
+}
+
+function IconSelect({
+  icon: Icon,
+  value,
+  onValueChange,
+  placeholder,
+  children,
+}: {
+  icon: React.ElementType;
+  value: string;
+  onValueChange: (v: string) => void;
+  placeholder: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="relative">
+      <Icon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground z-10" />
+      <Select value={value} onValueChange={onValueChange}>
+        <SelectTrigger className="h-10 pl-9">
+          <SelectValue placeholder={placeholder} />
+        </SelectTrigger>
+        <SelectContent>{children}</SelectContent>
+      </Select>
+    </div>
+  );
 }

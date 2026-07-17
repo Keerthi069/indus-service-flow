@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import {
   CheckCircle2, ArrowRight, ArrowLeft, Check, Home,
   User, Phone, Mail, Building2, Wrench, CalendarCheck, Clock, UserCog,
   Hospital, Stethoscope, Landmark, Store, Headphones, Download, Printer,
+  Sparkles,
 } from "lucide-react";
 
 import {
@@ -111,11 +112,43 @@ function isSlotTaken(
   );
 }
 
+// How many non-cancelled appointments `employeeId` already has on `date`,
+// used purely to rank auto-assignment candidates from least to most busy —
+// separate from isSlotTaken, which checks one specific time slot.
+function bookingCountForDate(employeeId: string, date: string, appointments: Appointment[]): number {
+  return appointments.filter(
+    (a: any) =>
+      a.date === date &&
+      a.status !== "cancelled" &&
+      (a.employee_id === employeeId ||
+        (Array.isArray(a.employee_ids) && a.employee_ids.includes(employeeId)))
+  ).length;
+}
+
+// Picks the best candidate to auto-assign for a service: fewest bookings
+// already on the books for that date, tie-broken alphabetically so the
+// choice is stable/predictable rather than array-order-dependent.
+function pickLeastBusy(
+  options: { employee: Employee; rangeLabel: string }[],
+  date: string,
+  appointments: Appointment[]
+): { employee: Employee; rangeLabel: string } | undefined {
+  if (options.length === 0) return undefined;
+  return [...options].sort((a, b) => {
+    const diff =
+      bookingCountForDate(a.employee.id, date, appointments) -
+      bookingCountForDate(b.employee.id, date, appointments);
+    if (diff !== 0) return diff;
+    return a.employee.name.localeCompare(b.employee.name);
+  })[0];
+}
+
 // serviceIds (plural) replaces the old single serviceId — a customer can now
 // pick more than one service for the same appointment. employeeAssignments
 // maps each selected service's id -> the employee assigned to perform it
 // (a single employee often can't cover every service, so this replaces the
-// old single employeeId field).
+// old single employeeId field). Assignments start out auto-filled by the
+// system (least-busy available staff) and stay editable per service.
 const emptyForm = {
   name: "",
   gender: "",
@@ -169,13 +202,20 @@ function ServiceMultiSelect({
   selectedIds,
   onChange,
   disabled,
+  unstaffedIds,
 }: {
   services: Service[];
   selectedIds: string[];
   onChange: (ids: string[]) => void;
   disabled?: boolean;
+  // Service ids with no qualified employee at this organization at all —
+  // rendered checked-off and unselectable, since there's nobody who could
+  // ever be assigned to perform them. Independent of date/shift
+  // availability, which is evaluated later once a date is picked.
+  unstaffedIds?: Set<string>;
 }) {
   function toggle(id: string) {
+    if (unstaffedIds?.has(id)) return;
     onChange(selectedIds.includes(id) ? selectedIds.filter((x) => x !== id) : [...selectedIds, id]);
   }
 
@@ -189,22 +229,27 @@ function ServiceMultiSelect({
         <div className="max-h-48 divide-y divide-border/60 overflow-y-auto">
           {services.map((s) => {
             const checked = selectedIds.includes(s.id);
+            const unstaffed = unstaffedIds?.has(s.id) ?? false;
             return (
               <label
                 key={s.id}
-                className="flex cursor-pointer items-center justify-between gap-3 px-3 py-2 text-sm hover:bg-muted/40"
+                title={unstaffed ? "No staff at this organization can perform this service yet" : undefined}
+                className={`flex items-center justify-between gap-3 px-3 py-2 text-sm ${
+                  unstaffed ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:bg-muted/40"
+                }`}
               >
                 <span className="flex items-center gap-2">
                   <input
                     type="checkbox"
                     checked={checked}
+                    disabled={unstaffed}
                     onChange={() => toggle(s.id)}
-                    className="h-4 w-4 rounded border-border accent-teal-600"
+                    className="h-4 w-4 rounded border-border accent-teal-600 disabled:cursor-not-allowed"
                   />
                   {s.name}
                 </span>
                 <span className="whitespace-nowrap text-xs text-muted-foreground">
-                  {s.duration_min} min{s.fee ? ` · ₹${s.fee}` : " · Free"}
+                  {unstaffed ? "No staff available" : `${s.duration_min} min${s.fee ? ` · ₹${s.fee}` : " · Free"}`}
                 </span>
               </label>
             );
@@ -251,9 +296,30 @@ function BookAppointment() {
 
   const [form, setForm] = useState(emptyForm);
 
+  // Tracks which services the customer has manually reassigned, so the
+  // auto-assign effect below never clobbers a deliberate choice — it only
+  // ever fills in services that are still on "auto".
+  const [manuallyAssigned, setManuallyAssigned] = useState<Set<string>>(new Set());
+
   const orgsFiltered = orgs.filter((o) => o.category === form.category);
   const servicesFiltered = services.filter((s) => s.organization_id === form.orgId);
   const employeesFiltered = employees.filter((e) => e.organization_id === form.orgId);
+
+  // Services this organization has literally nobody qualified to perform
+  // (designation → service_ids mapping comes up empty), independent of any
+  // date/shift check — those are unselectable in the checklist below since
+  // no staff member could ever be assigned to them.
+  const unstaffedServiceIds = useMemo(() => {
+    const set = new Set<string>();
+    servicesFiltered.forEach((s) => {
+      const hasQualifiedStaff = employeesFiltered.some((e) => {
+        const ids = (e as any).service_ids as string[] | undefined;
+        return Array.isArray(ids) && ids.includes(s.id);
+      });
+      if (!hasQualifiedStaff) set.add(s.id);
+    });
+    return set;
+  }, [servicesFiltered, employeesFiltered]);
 
   const summary = useMemo(() => {
     const org = orgs.find((o) => o.id === form.orgId);
@@ -299,7 +365,10 @@ function BookAppointment() {
           if (!form.date) return true; // no date chosen yet, can't check further
           if (isOffDay(form.date)) return false;
           return TIME_SLOTS.some(
-            (t) => isTimeInShiftRange(t, parsed) && !isSlotTaken(employee.id, form.date, t, appointments)
+            (t) =>
+              isTimeInShiftRange(t, parsed) &&
+              timeToMin(t) < parsed.endMin && // shift-end itself isn't a bookable start time
+              !isSlotTaken(employee.id, form.date, t, appointments)
           );
         })
         .map(({ employee, parsed }) => ({
@@ -310,6 +379,56 @@ function BookAppointment() {
 
     return map;
   }, [summary.services, summary.org, employeesFiltered, form.date, appointments]);
+
+  // Auto-assigns staff as soon as a date is picked (or the set of
+  // qualifying employees for a service changes) — least-busy-first, so the
+  // customer never has to manually pick anyone unless they want to. Only
+  // touches services that are still on "auto" (i.e. not in
+  // `manuallyAssigned`, and not already holding a still-valid assignment),
+  // so a deliberate override is never silently overwritten.
+  useEffect(() => {
+    if (!form.date || form.serviceIds.length === 0) return;
+
+    setForm((f) => {
+      const next = { ...f.employeeAssignments };
+      let changed = false;
+
+      form.serviceIds.forEach((sid) => {
+        const options = employeeOptionsByService[sid] ?? [];
+        const current = next[sid];
+        const currentStillValid = current && options.some((o) => o.employee.id === current);
+
+        if (currentStillValid) return; // valid pick already in place — leave it, whether auto or manual
+
+        if (manuallyAssigned.has(sid)) {
+          // The customer's chosen employee is no longer valid for this
+          // date (e.g. fully booked) — clear it rather than silently
+          // auto-picking someone else on their behalf.
+          if (current) {
+            delete next[sid];
+            changed = true;
+          }
+          return;
+        }
+
+        const best = pickLeastBusy(options, f.date, appointments);
+        if (best && best.employee.id !== current) {
+          next[sid] = best.employee.id;
+          changed = true;
+        } else if (!best && current) {
+          delete next[sid];
+          changed = true;
+        }
+      });
+
+      if (!changed) return f;
+      return { ...f, employeeAssignments: next, time: "" };
+    });
+    // form.date and form.serviceIds are read via the closure above (f) to
+    // avoid a stale-state race with the setForm updater; they're still
+    // listed as deps so the effect reruns when either changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.date, form.serviceIds, employeeOptionsByService, appointments, manuallyAssigned]);
 
   // Customers can only book today or a future date, and — when the date is
   // today — only time slots that haven't already passed. On top of that,
@@ -337,7 +456,7 @@ function BookAppointment() {
 
       slots = slots.filter(
         (t) =>
-          parsedShifts.every((p) => p && isTimeInShiftRange(t, p)) &&
+          parsedShifts.every((p) => p && isTimeInShiftRange(t, p) && timeToMin(t) < p.endMin) &&
           assignedIds.every((id) => !isSlotTaken(id, form.date, t, appointments))
       );
     }
@@ -352,7 +471,7 @@ function BookAppointment() {
     if (step === 2) {
       const missingEmployee = form.serviceIds.some((sid) => !form.employeeAssignments[sid]);
       if (form.serviceIds.length === 0 || !form.date || missingEmployee || !form.time) {
-        return toast.error("Select a date, an employee for each service, and a time");
+        return toast.error("Select a date and a time — we'll assign staff automatically, or pick your own");
       }
       // Belt-and-suspenders: reject if the chosen time somehow isn't in the
       // currently-valid slot list (e.g. someone else just took it).
@@ -422,6 +541,7 @@ function BookAppointment() {
 
   function bookAgain() {
     setForm(emptyForm);
+    setManuallyAssigned(new Set());
     setConfirmed(null);
     setStep(1);
   }
@@ -465,17 +585,56 @@ function BookAppointment() {
   const catMeta = categoryMeta(form.category);
 
   // ── Success screen ──────────────────────────────────────────────────────
-
+  // Layout, top to bottom:
+  //   1. Nav bar        — Home (left) + Receipt actions (right). Page-level
+  //                       utility actions, hidden on print.
+  //   2. Celebration     — icon + confirmation copy. Hidden on print.
+  //   3. Receipt card    — pure booking data (SummaryRow/SummaryServicesRow).
+  //                       No buttons of any kind live inside this div, so it
+  //                       prints/downloads cleanly as just the receipt.
+  //   4. Footer CTA      — single full-width primary action, "Book Another
+  //                       Appointment". Hidden on print.
   if (confirmed) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-sky-100 flex items-center justify-center p-6 print:block print:min-h-0 print:bg-white print:p-0">
+        {/* ── 1. Nav bar — pinned to the actual page corners (not confined
+           to the max-w-lg column below), so Home sits at the very top-left
+           of the page and Receipt sits at the very top-right. Hidden on
+           print. ── */}
+        <div className="fixed left-4 top-4 z-10 print:hidden">
+          <Button asChild variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-foreground">
+            <Link to="/">
+              <Home className="h-4 w-4" /> Home
+            </Link>
+          </Button>
+        </div>
+
+        <div className="fixed right-4 top-4 z-10 print:hidden">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-foreground">
+                <Download className="h-4 w-4" /> Receipt
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={downloadReceipt} className="gap-2">
+                <Download className="h-3.5 w-3.5" /> Download PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => window.print()} className="gap-2">
+                <Printer className="h-3.5 w-3.5" /> Print
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
         <div className="w-full max-w-lg">
+
           <Card className="overflow-hidden rounded-3xl border-0 bg-white shadow-2xl animate-[fadeUp_0.5s_ease-out] print:shadow-none print:rounded-none print:border-0">
-            <CardContent className="p-8 text-center print:p-0">
-              {/* Celebratory chrome — not part of the actual receipt, so it's
+            <CardContent className="p-8 print:p-0">
+              {/* ── 2. Celebration header — not part of the receipt, so it's
                  excluded from print output. Uses the same teal used across
-                 the booking flow's category chips, buttons, and step dots. */}
-              <div className="print:hidden">
+                 the booking flow's category chips, buttons, and step dots. ── */}
+              <div className="text-center print:hidden">
                 <div className="relative mx-auto flex h-24 w-24 items-center justify-center">
                   {/* decorative confetti around the checkmark */}
                   <span className="absolute -left-6 top-3 h-2 w-2 rotate-45 bg-sky-300" />
@@ -496,10 +655,9 @@ function BookAppointment() {
                 </p>
               </div>
 
-              {/* ── The actual receipt — this is the only part visible when
-                 the browser's Print action fires; everything else on this
-                 screen (celebration copy, nav buttons, receipt actions) is
-                 chrome around it, kept outside this div. ── */}
+              {/* ── 3. The actual receipt — this is the only part visible when
+                 the browser's Print action fires. Contains booking details
+                 ONLY — no action buttons live inside this div. ── */}
               <div className="mt-6 rounded-2xl border border-teal-100 bg-teal-50/40 p-5 text-left print:mt-0 print:rounded-none print:border-0 print:bg-white print:p-0">
                 <div className="mb-4 flex items-center justify-between border-b border-teal-100 pb-3 print:pb-2">
                   <span className="text-sm font-bold uppercase tracking-wide text-foreground">Appointment Receipt</span>
@@ -515,40 +673,20 @@ function BookAppointment() {
                 <SummaryRow icon={Clock} label="Time" value={fmt12(timeToMin(form.time))} last />
               </div>
 
-              {/* ── Actions — deliberately outside the receipt div above.
-                 One visible trigger covers both receipt actions (download
-                 PDF or print), and is itself hidden on print so the print
-                 output only ever shows the receipt. ── */}
-              <div className="mt-5 flex justify-center print:hidden">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="gap-2 rounded-full border-teal-200 px-6 text-teal-700 hover:bg-teal-50">
-                      <Download className="h-4 w-4" /> Receipt
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="center" className="w-48">
-                    <DropdownMenuItem onClick={downloadReceipt} className="gap-2">
-                      <Download className="h-3.5 w-3.5" /> Download PDF
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => window.print()} className="gap-2">
-                      <Printer className="h-3.5 w-3.5" /> Print
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-
-              <div className="mt-3 flex gap-3 print:hidden">
-                <Button asChild variant="outline" className="flex-1 gap-2 rounded-full">
-                  <Link to="/">
-                    <Home className="h-4 w-4" /> Back to Home
-                  </Link>
-                </Button>
-                <Button className="flex-1 gap-2 rounded-full bg-teal-600 hover:bg-teal-700" onClick={bookAgain}>
-                  <CalendarCheck className="h-4 w-4" /> Book Another Appointment
-                </Button>
-              </div>
             </CardContent>
           </Card>
+
+          {/* ── 4. Footer CTA — lives OUTSIDE the white card entirely, as
+             page-level chrome below it. "Home" already lives in the nav bar
+             above, so it isn't repeated here. Hidden on print. ── */}
+          <div className="mt-4 print:hidden">
+            <Button
+              className="w-full gap-2 rounded-full bg-teal-600 py-6 text-base hover:bg-teal-700"
+              onClick={bookAgain}
+            >
+              <CalendarCheck className="h-4 w-4" /> Book Another Appointment
+            </Button>
+          </div>
         </div>
 
         <style>{`
@@ -665,18 +803,30 @@ function BookAppointment() {
                   <ServiceMultiSelect
                     services={servicesFiltered}
                     selectedIds={form.serviceIds}
+                    unstaffedIds={unstaffedServiceIds}
                     onChange={(ids) =>
                       setForm((f) => {
+                        // Belt-and-suspenders: never let an unstaffed
+                        // service slip into selection, even if it got there
+                        // some other way (e.g. stale state from an org
+                        // switch).
+                        const filtered = ids.filter((id) => !unstaffedServiceIds.has(id));
                         // Drop any assignment for a service that just got
-                        // unchecked, keep the rest as-is.
+                        // unchecked, keep the rest as-is (auto-assign will
+                        // fill in newly-added services on its own).
                         const pruned: Record<string, string> = {};
-                        ids.forEach((sid) => {
+                        filtered.forEach((sid) => {
                           if (f.employeeAssignments[sid]) pruned[sid] = f.employeeAssignments[sid];
                         });
-                        return { ...f, serviceIds: ids, employeeAssignments: pruned, time: "" };
+                        return { ...f, serviceIds: filtered, employeeAssignments: pruned, time: "" };
                       })
                     }
                   />
+                  {unstaffedServiceIds.size > 0 && (
+                    <p className="pt-1 text-xs text-muted-foreground">
+                      Services with no qualified staff yet are greyed out and can't be booked.
+                    </p>
+                  )}
                   {form.serviceIds.length > 0 && (
                     <p className="pt-1 text-xs text-muted-foreground">
                       {form.serviceIds.length} service{form.serviceIds.length > 1 ? "s" : ""} selected · {summary.totalDuration} min total
@@ -694,44 +844,60 @@ function BookAppointment() {
                     min={minDate}
                     value={form.date}
                     disabled={form.serviceIds.length === 0}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, date: e.target.value, time: "", employeeAssignments: {} }))
-                    }
+                    onChange={(e) => {
+                      setManuallyAssigned(new Set()); // fresh date ⇒ re-run auto-assign from scratch
+                      setForm((f) => ({ ...f, date: e.target.value, time: "", employeeAssignments: {} }));
+                    }}
                   />
                   {form.date && isOffDay(form.date) && (
                     <p className="pt-1 text-xs text-red-600">This is a weekly off day — no staff are working. Pick another date.</p>
                   )}
                 </Field>
 
-                {/* One employee picker per selected service — filtered to
-                   staff who are (a) qualified for that specific service,
-                   (b) actually working on the chosen date, and (c) not
-                   already fully booked that day. A single employee often
-                   can't cover every service (e.g. a bank Teller can't
-                   process a Loan), so each service is staffed
+                {/* One employee picker per selected service — auto-filled
+                   with the least-busy qualified, available staff member as
+                   soon as a date is picked, but always changeable. Options
+                   are filtered to staff who are (a) qualified for that
+                   specific service, (b) actually working on the chosen
+                   date, and (c) not already fully booked that day. A single
+                   employee often can't cover every service (e.g. a bank
+                   Teller can't process a Loan), so each service is staffed
                    independently. */}
                 {form.serviceIds.length > 0 ? (
-                  <Field label="Assign staff to each service" icon={UserCog}>
+                  <Field label="Staff" icon={UserCog}>
                     {!form.date ? (
                       <p className="rounded-md border border-dashed border-border px-3 py-2 text-xs text-muted-foreground">
-                        Pick a date above to see who's available
+                        Pick a date above — we'll assign available staff automatically
                       </p>
                     ) : (
                       <div className="space-y-3 rounded-md border border-border p-3">
+                        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <Sparkles className="h-3.5 w-3.5 text-teal-600" />
+                          Assigned automatically — change anyone you'd prefer below
+                        </p>
                         {summary.services.map((s) => {
                           const options = employeeOptionsByService[s.id] ?? [];
+                          const isAuto = !manuallyAssigned.has(s.id);
                           return (
                             <div key={s.id} className="flex items-center justify-between gap-3">
-                              <span className="min-w-0 flex-1 truncate text-sm text-foreground">{s.name}</span>
+                              <span className="min-w-0 flex-1 truncate text-sm text-foreground">
+                                {s.name}
+                                {isAuto && form.employeeAssignments[s.id] && (
+                                  <span className="ml-1.5 rounded-full bg-teal-50 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-teal-600">
+                                    Auto
+                                  </span>
+                                )}
+                              </span>
                               <Select
                                 value={form.employeeAssignments[s.id] ?? ""}
-                                onValueChange={(v) =>
+                                onValueChange={(v) => {
+                                  setManuallyAssigned((prev) => new Set(prev).add(s.id));
                                   setForm((f) => ({
                                     ...f,
                                     employeeAssignments: { ...f.employeeAssignments, [s.id]: v },
                                     time: "", // previously-picked time may no longer fit this employee's shift
-                                  }))
-                                }
+                                  }));
+                                }}
                               >
                                 <SelectTrigger className="h-9 w-56 text-sm">
                                   <SelectValue placeholder="Select employee" />
@@ -757,9 +923,9 @@ function BookAppointment() {
                     )}
                   </Field>
                 ) : (
-                  <Field label="Assign staff to each service" icon={UserCog}>
+                  <Field label="Staff" icon={UserCog}>
                     <p className="rounded-md border border-dashed border-border px-3 py-2 text-xs text-muted-foreground">
-                      Select at least one service above to assign staff
+                      Select at least one service above — staff will be assigned automatically
                     </p>
                   </Field>
                 )}
@@ -784,7 +950,7 @@ function BookAppointment() {
                           !form.date
                             ? "Choose a date first"
                             : form.serviceIds.some((sid) => !form.employeeAssignments[sid])
-                            ? "Assign staff first"
+                            ? "Waiting on staff assignment"
                             : "Select time"
                         }
                       />
@@ -878,13 +1044,13 @@ function SummaryRow({
         last ? "" : "border-b border-border/60"
       }`}
     >
-      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-teal-50 text-teal-600">
-        <Icon className="h-4 w-4" />
+      <span className="flex shrink-0 items-center gap-2 text-sm font-bold text-foreground">
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-teal-50 text-teal-600">
+          <Icon className="h-4 w-4" />
+        </span>
+        {label}:
       </span>
-      <div className="min-w-0 flex-1">
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
-        <p className="truncate text-sm font-semibold text-foreground">{value || "—"}</p>
-      </div>
+      <span className="truncate text-sm font-normal text-foreground">{value || "—"}</span>
     </div>
   );
 }
@@ -904,24 +1070,26 @@ function SummaryServicesRow({
 }) {
   return (
     <div className="flex items-start gap-3 border-b border-border/60 py-3">
-      <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full bg-teal-50 text-teal-600">
-        <Wrench className="h-4 w-4" />
+      <span className="flex shrink-0 items-center gap-2 pt-0.5 text-sm font-bold text-foreground">
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-teal-50 text-teal-600">
+          <Wrench className="h-4 w-4" />
+        </span>
+        Services:
       </span>
-      <div className="min-w-0 flex-1">
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Services</p>
+      <div className="min-w-0 flex-1 pt-0.5">
         {assignments.length === 0 ? (
-          <p className="text-sm font-semibold text-foreground">—</p>
+          <p className="text-sm font-normal text-foreground">—</p>
         ) : (
-          <div className="mt-1 space-y-1.5">
+          <div className="space-y-1.5">
             {assignments.map(({ service, employee }) => (
-              <div key={service.id} className="flex items-center justify-between gap-2 text-sm">
-                <span className="min-w-0 truncate font-semibold text-foreground">
+              <div key={service.id} className="flex items-center gap-2 text-sm">
+                <span className="min-w-0 truncate font-normal text-foreground">
                   {service.name}
-                  <span className="ml-1.5 font-normal text-muted-foreground">
+                  <span className="ml-1.5 text-muted-foreground">
                     → {employee?.name ?? "—"} · {service.duration_min} min
                   </span>
                 </span>
-                <span className="shrink-0 text-xs font-semibold text-teal-700">
+                <span className="shrink-0 text-xs font-normal text-teal-700">
                   {service.fee ? `₹${service.fee}` : "Free"}
                 </span>
               </div>
